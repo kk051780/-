@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>SnapFun 完全版（Web Pro） PRO-LOCAL</title>
+<style>
+  :root {
+    --bg:#0e1117; --panel:#141a23; --line:#24324a; --text:#e7eaf0; --muted:#9fb3d6; --acc:#3aa2ff; --good:#21c17a;
+  }
+  *{box-sizing:border-box}
+  html,body{background:var(--bg);color:var(--text);margin:0;font:14px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+  .wrap{max-width:1200px;margin:0 auto;padding:14px}
+  .grid{display:grid;gap:12px;grid-template-columns:1fr}
+  @media(min-width:980px){ .grid{grid-template-columns:1.2fr 0.8fr} }
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .btn,select,input[type=file]{background:#1b2435;color:#fff;border:1px solid #2b3753;border-radius:10px;padding:8px 12px}
+  .btn.primary{background:var(--acc);border-color:#2a8fe8}
+  .btn.good{background:var(--good)}
+  label.chk{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid #2b3753;border-radius:999px;background:#121a28}
+  .title{font-weight:700;margin-bottom:8px}
+  .pill{background:#101723;border:1px solid #2b3753;border-radius:999px;padding:6px 10px;font-size:12px;color:var(--muted)}
+  canvas{width:100%;height:auto;background:#0b0f16;border:1px solid #1f2a3f;border-radius:10px;touch-action:none}
+  .slider{width:220px}
+  .sec{margin-top:10px;border-top:1px dashed #2a3750;padding-top:10px}
+  #log{background:#0b0f16;border:1px solid #1f2a3f;border-radius:10px;min-height:80px;max-height:40vh;overflow:auto;padding:8px;white-space:pre-wrap}
+  .kbd{background:#0d1220;border:1px solid #2a3650;border-radius:6px;padding:2px 6px;font-family:ui-monospace;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="grid">
+    <div class="panel">
+      <div class="row">
+        <input id="file" type="file" accept="image/*">
+        <button id="btnSample" class="btn">サンプル読込</button>
+        <button id="btnUndo" class="btn">元に戻す</button>
+        <button id="btnRedo" class="btn">やり直し</button>
+        <button id="btnSave" class="btn good">PNG保存</button>
+        <span class="pill">Build PRO-LOCAL</span>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <select id="selBG" class="btn">
+          <option value="">背景：変更なし</option>
+          <option value="beach">サンプル：ビーチ</option>
+          <option value="city">サンプル：夜景</option>
+          <option value="studio">サンプル：スタジオ</option>
+          <option value="file">自分の背景を選択…</option>
+          <option value="url">画像URLを貼る…</option>
+        </select>
+        <input id="bgFile" type="file" accept="image/*" style="display:none">
+        <input id="bgURL" placeholder="https://..." class="btn" style="display:none;min-width:220px">
+        <label class="chk"><input id="ckCut" type="checkbox">人物切り抜き（簡易キー）</label>
+        <label class="chk"><input id="ckBlend" type="checkbox" checked>色なじませ</label>
+      </div>
+      <canvas id="cv" width="1280" height="720"></canvas>
+      <div class="row">
+        <span class="pill">長押し：編集前/後比較（PCは<span class="kbd">Space</span>）</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="title">調整パネル</div>
+      <div class="row">
+        <label>装飾度 <input id="sDecor" class="slider" type="range" min="0" max="100" value="25"></label>
+        <label>変形度 <input id="sTransform" class="slider" type="range" min="0" max="100" value="10"></label>
+        <label>シャープ <input id="sSharp" class="slider" type="range" min="0" max="100" value="30"></label>
+        <label>年齢ムード <input id="sAge" class="slider" type="range" min="0" max="100" value="50"></label>
+      </div>
+      <div class="row">
+        <label>髪カラー 
+          <select id="selHair" class="btn">
+            <option value="">変更なし</option>
+            <option value="black">黒</option>
+            <option value="brown">茶</option>
+            <option value="blonde">金</option>
+            <option value="gray">白髪</option>
+          </select>
+        </label>
+        <label>髪ツヤ <input id="sGloss" class="slider" type="range" min="0" max="100" value="20"></label>
+        <label>なじませ <input id="sBlend" class="slider" type="range" min="0" max="100" value="30"></label>
+      </div>
+      <div class="row sec">
+        <button id="btnApply" class="btn primary">適用</button>
+        <button id="btnReset" class="btn">リセット</button>
+      </div>
+      <div class="sec">
+        <div class="title">会話で指示（日本語OK）</div>
+        <div class="row">
+          <input id="chat" class="btn" style="flex:1" placeholder="例：自然に若くして、黒髪、夜景、保存">
+          <button id="chatGo" class="btn">送信</button>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="title">診断ログ</div>
+        <div id="log">準備中…</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+/* ==== 埋め込み背景（データURI：SVG） ==== */
+const BG_BEACH  = 'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2aa1ff"/><stop offset="1" stop-color="#ffd480"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#g)"/><text x="40" y="60" font-size="42" fill="#fff">Beach Sample</text></svg>');
+const BG_CITY   = 'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720"><rect width="100%" height="100%" fill="#121423"/><g fill="#2c3e70"><rect x="80" y="240" width="120" height="360"/><rect x="240" y="180" width="100" height="420"/><rect x="380" y="300" width="150" height="300"/><rect x="560" y="220" width="120" height="380"/><rect x="720" y="260" width="180" height="340"/></g><text x="40" y="60" font-size="42" fill="#fff">City Night Sample</text></svg>');
+const BG_STUDIO = 'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720"><rect width="100%" height="100%" fill="#3b3b3b"/><circle cx="220" cy="180" r="80" fill="#5a5a5a"/><circle cx="1060" cy="520" r="120" fill="#2e2e2e"/><text x="40" y="60" font-size="42" fill="#fff">Studio Gray Sample</text></svg>');
+
+/* ==== ユーティリティ ==== */
+const log=(m)=>{ const e=document.getElementById('log'); e.textContent += "\\n"+m; e.scrollTop=e.scrollHeight; };
+const alertErr=(m)=>{ log("ERROR: "+m); alert(m); };
+const cv=document.getElementById('cv'); const ctx=cv.getContext('2d');
+let srcImg=null, bgImg=null, baseData=null, lastData=null; let undo=[], redo=[];
+
+function initCanvas(){
+  ctx.fillStyle='#0b0f16'; ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.fillStyle='#8aa5cc'; ctx.fillText('写真を読み込んでください',16,24);
+}
+initCanvas();
+
+function pushUndo(){ try{ undo.push(cv.toDataURL('image/png')); if(undo.length>20) undo.shift(); redo.length=0; }catch(e){} }
+function doUndo(){ if(!undo.length) return; const data=undo.pop(); redo.push(cv.toDataURL('image/png')); const img=new Image(); img.onload=()=>{ cv.width=img.width; cv.height=img.height; ctx.clearRect(0,0,cv.width,cv.height); ctx.drawImage(img,0,0); }; img.src=data; }
+function doRedo(){ if(!redo.length) return; const data=redo.pop(); undo.push(cv.toDataURL('image/png')); const img=new Image(); img.onload=()=>{ cv.width=img.width; cv.height=img.height; ctx.clearRect(0,0,cv.width,cv.height); ctx.drawImage(img,0,0); }; img.src=data; }
+
+function drawCover(img){
+  const iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height;
+  const r=Math.max(cv.width/iw, cv.height/ih); const nw=iw*r, nh=ih*r; const dx=(cv.width-nw)/2, dy=(cv.height-nh)/2;
+  ctx.drawImage(img,dx,dy,nw,nh);
+}
+
+async function loadAsImage(file){
+  if(!file) throw new Error('ファイル未選択');
+  const typ=(file.type||'').toLowerCase();
+  if(typ.includes('heic')||typ.includes('heif')) throw new Error('HEIC/HEIFは未対応です。JPEG/PNG/WebPをご使用ください。');
+  const data=await new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=e=>rej(e); fr.readAsDataURL(file); });
+  const img=await new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=()=>rej(new Error('画像を読み込めませんでした')); im.src=data; });
+  return img;
+}
+
+/* ==== メイン処理 ==== */
+function applyAll(){
+  if(!srcImg) return;
+  pushUndo();
+  ctx.clearRect(0,0,cv.width,cv.height);
+  // 背景
+  if(bgImg && document.getElementById('ckCut').checked) drawCover(bgImg);
+  // 元画像
+  drawCover(srcImg);
+  let imgData = ctx.getImageData(0,0,cv.width,cv.height);
+  let d = imgData.data;
+  const decor=+document.getElementById('sDecor').value/100;
+  const sharp=+document.getElementById('sSharp').value/100;
+  const age=+document.getElementById('sAge').value/100;
+  const gloss=+document.getElementById('sGloss').value/100;
+  const hair=document.getElementById('selHair').value;
+  const blend=+document.getElementById('sBlend').value/100;
+  const blendOn=document.getElementById('ckBlend').checked;
+
+  // 装飾（彩度・コントラスト）
+  for(let i=0;i<d.length;i+=4){
+    let r=d[i], g=d[i+1], b=d[i+2];
+    r = r + (r-128)*0.18*decor; g = g + (g-128)*0.18*decor; b = b + (b-128)*0.18*decor;
+    d[i]=r; d[i+1]=g; d[i+2]=b;
+  }
+
+  // 年齢ムード：若め=ソフト＋暖色／大人=コントラスト＋寒色
+  const young = age<0.5 ? (0.5-age)*2 : 0;
+  const old = age>0.5 ? (age-0.5)*2 : 0;
+  if(young>0){
+    const copy=new Uint8ClampedArray(d); const w=cv.width, h=cv.height;
+    for(let y=1;y<h-1;y++) for(let x=1;x<w-1;x++){ const i=(y*w+x)*4;
+      d[i]=(copy[i]+copy[i-4]+copy[i+4]+copy[i-w*4]+copy[i+w*4])/5 + 8*young;
+      d[i+1]=(copy[i+1]+copy[i-4+1]+copy[i+4+1]+copy[i-w*4+1]+copy[i+w*4+1])/5 + 4*young;
+      d[i+2]=(copy[i+2]+copy[i-4+2]+copy[i+4+2]+copy[i-w*4+2]+copy[i+w*4+2])/5;
+    }
+  }
+  if(old>0){
+    for(let i=0;i<d.length;i+=4){
+      d[i]=(d[i]-128)*(1+0.25*old)+128-6*old; 
+      d[i+1]=(d[i+1]-128)*(1+0.25*old)+128-3*old; 
+      d[i+2]=(d[i+2]-128)*(1+0.25*old)+128+7*old;
+    }
+  }
+
+  // 髪色：暗部中心に寄せる
+  if(hair){
+    let tr=[0,0,0];
+    if(hair==='black') tr=[24,24,26];
+    if(hair==='brown') tr=[92,64,40];
+    if(hair==='blonde') tr=[222,202,130];
+    if(hair==='gray') tr=[175,175,175];
+    for(let i=0;i<d.length;i+=4){ 
+      const lum=0.3*d[i]+0.59*d[i+1]+0.11*d[i+2];
+      const m=Math.max(0, Math.min(1,(165-lum)/165));
+      d[i]=d[i]*(1-m)+tr[0]*m; d[i+1]=d[i+1]*(1-m)+tr[1]*m; d[i+2]=d[i+2]*(1-m)+tr[2]*m;
+    }
+  }
+
+  // ツヤ（ハイライト強調）
+  if(gloss>0){
+    for(let i=0;i<d.length;i+=4){ 
+      const lum=(d[i]+d[i+1]+d[i+2])/3;
+      const m=Math.max(0,(lum-160)/95)*gloss*0.012;
+      d[i]+=m*40; d[i+1]+=m*40; d[i+2]+=m*40;
+    }
+  }
+
+  // 色なじませ（背景置換時）
+  if(bgImg && blendOn && blend>0){
+    for(let i=0;i<d.length;i+=4){ 
+      d[i]=d[i]*(1-0.10*blend)+180*0.10*blend;
+      d[i+1]=d[i+1]*(1-0.10*blend)+180*0.10*blend;
+      d[i+2]=d[i+2]*(1-0.10*blend)+190*0.10*blend;
+    }
+  }
+
+  // シャープ
+  if(sharp>0){
+    const w=cv.width,h=cv.height; const copy=new Uint8ClampedArray(d);
+    for(let y=1;y<h-1;y++) for(let x=1;x<w-1;x++){ const i=(y*w+x)*4;
+      const lr = -copy[i]*4 + copy[i-4] + copy[i+4] + copy[i-w*4] + copy[i+w*4];
+      const lg = -copy[i+1]*4 + copy[i-4+1] + copy[i+4+1] + copy[i-w*4+1] + copy[i+w*4+1];
+      const lb = -copy[i+2]*4 + copy[i-4+2] + copy[i+4+2] + copy[i-w*4+2] + copy[i+w*4+2];
+      d[i]   = Math.max(0,Math.min(255, d[i]   + lr*(0.0014*sharp)));
+      d[i+1] = Math.max(0,Math.min(255, d[i+1] + lg*(0.0014*sharp)));
+      d[i+2] = Math.max(0,Math.min(255, d[i+2] + lb*(0.0014*sharp)));
+    }
+  }
+
+  ctx.putImageData(imgData,0,0);
+}
+
+/* ==== UI ==== */
+function resetUI(){
+  document.getElementById('sDecor').value=25;
+  document.getElementById('sTransform').value=10;
+  document.getElementById('sSharp').value=30;
+  document.getElementById('sAge').value=50;
+  document.getElementById('selHair').value='';
+  document.getElementById('sGloss').value=20;
+  document.getElementById('sBlend').value=30;
+  document.getElementById('ckCut').checked=false; document.getElementById('ckBlend').checked=true;
+  document.getElementById('selBG').value=''; bgImg=null;
+}
+
+function savePNG(){ const a=document.createElement('a'); a.href=cv.toDataURL('image/png'); a.download='snapfun_pro.png'; a.click(); }
+
+document.getElementById('btnSave').onclick=savePNG;
+document.getElementById('btnUndo').onclick=doUndo;
+document.getElementById('btnRedo').onclick=doRedo;
+document.getElementById('btnApply').onclick=()=>{ applyAll(); log('適用'); };
+document.getElementById('btnReset').onclick=()=>{ resetUI(); applyAll(); log('リセット'); };
+
+// 背景
+document.getElementById('selBG').addEventListener('change', onBGChange);
+document.getElementById('bgFile').addEventListener('change', async e=>{ const f=e.target.files&&e.target.files[0]; if(!f) return; try{ const img=await loadAsImage(f); bgImg=img; applyAll(); }catch(err){ alertErr(err.message||err); } });
+document.getElementById('bgURL').addEventListener('change', e=> setBGURL(e.target.value));
+
+function setBGURL(u){
+  if(!u) return;
+  const im=new Image(); im.crossOrigin='anonymous'; im.onload=()=>{ bgImg=im; applyAll(); }; im.onerror=()=>alertErr('URL画像を読み込めません'); im.src=u;
+}
+
+function onBGChange(){
+  const v=document.getElementById('selBG').value;
+  document.getElementById('bgURL').style.display='none';
+  if(v===''){ bgImg=null; }
+  if(v==='beach'){ const i=new Image(); i.onload=()=>{bgImg=i; applyAll();}; i.src=BG_BEACH; }
+  if(v==='city'){ const i=new Image(); i.onload=()=>{bgImg=i; applyAll();}; i.src=BG_CITY; }
+  if(v==='studio'){ const i=new Image(); i.onload=()=>{bgImg=i; applyAll();}; i.src=BG_STUDIO; }
+  if(v==='file'){ document.getElementById('bgFile').click(); }
+  if(v==='url'){ document.getElementById('bgURL').style.display='inline-block'; document.getElementById('bgURL').focus(); }
+}
+
+// 画像読込
+document.getElementById('file').addEventListener('change', async e=>{
+  const f=e.target.files&&e.target.files[0]; if(!f) return;
+  try{
+    const img=await loadAsImage(f); srcImg=img;
+    const maxW=1920, maxH=1920;
+    const iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height;
+    const r=Math.min(maxW/iw, maxH/ih, 1);
+    cv.width=Math.round(iw*r); cv.height=Math.round(ih*r);
+    ctx.clearRect(0,0,cv.width,cv.height); drawCover(img);
+    baseData=ctx.getImageData(0,0,cv.width,cv.height);
+    log('画像OK: '+cv.width+'x'+cv.height);
+  }catch(err){ alertErr(err.message||err); }
+});
+
+// 比較（長押し・スペース）
+let baseHold=false;
+cv.addEventListener('touchstart',()=>{ if(baseData){ baseHold=true; ctx.putImageData(baseData,0,0); } }, {passive:true});
+cv.addEventListener('touchend',()=>{ if(baseHold){ baseHold=false; applyAll(); } }, {passive:true});
+window.addEventListener('keydown', e=>{ if(e.code==='Space'&&baseData) ctx.putImageData(baseData,0,0); });
+window.addEventListener('keyup', e=>{ if(e.code==='Space'&&baseData) applyAll(); });
+
+// サンプル
+document.getElementById('btnSample').onclick=()=>{
+  const i=new Image(); i.onload=()=>{ srcImg=i; cv.width=1280; cv.height=720; ctx.clearRect(0,0,cv.width,cv.height); drawCover(i); baseData=ctx.getImageData(0,0,cv.width,cv.height); log('サンプル表示'); }; 
+  i.src=BG_BEACH;
+};
+
+// 会話
+document.getElementById('chatGo').onclick=()=>{ parseChat((document.getElementById('chat').value||'').trim()); };
+function parseChat(s){
+  if(!s) return;
+  if(/保存/.test(s)) savePNG();
+  if(/若|若く|young/i.test(s)) document.getElementById('sAge').value=20;
+  if(/大人|老|old/i.test(s)) document.getElementById('sAge').value=80;
+  if(/黒髪|黒/i.test(s)) document.getElementById('selHair').value='black';
+  if(/茶|brown/i.test(s)) document.getElementById('selHair').value='brown';
+  if(/金|blonde/i.test(s)) document.getElementById('selHair').value='blonde';
+  if(/白髪|gray/i.test(s)) document.getElementById('selHair').value='gray';
+  if(/夜景|city|night/i.test(s)) document.getElementById('selBG').value='city';
+  if(/ビーチ|beach/i.test(s)) document.getElementById('selBG').value='beach';
+  if(/スタジオ|studio/i.test(s)) document.getElementById('selBG').value='studio';
+  if(/切り抜きオン|切り抜きon|合成|replace/i.test(s)) document.getElementById('ckCut').checked=true;
+  if(/切り抜きオフ|切り抜きoff/i.test(s)) document.getElementById('ckCut').checked=false;
+  const m = s.match(/背景url\s*(https?:[^\s]+)/i); if(m){ const u=m[1]; setBGURL(u); }
+  onBGChange(); applyAll();
+}
+
+log('準備完了。写真を読み込み→スライダー調整→「適用」。会話指示もOK。');
+</script>
+</body>
+</html>
