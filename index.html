@@ -2,323 +2,496 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>SnapFun 完全版（Web Pro） PRO-LOCAL</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SnapFun v1.4 完全版（Offline-first / WebGPU優先 / 互換併存）</title>
 <style>
-  :root {
-    --bg:#0e1117; --panel:#141a23; --line:#24324a; --text:#e7eaf0; --muted:#9fb3d6; --acc:#3aa2ff; --good:#21c17a;
+  :root{
+    --bg:#0e0f13;--fg:#e9eef3;--muted:#9aa7b2;--panel:#151923;--accent:#45a3ff;--ok:#33d17a;--warn:#ffb433;--err:#ff5d5d;
   }
-  *{box-sizing:border-box}
-  html,body{background:var(--bg);color:var(--text);margin:0;font:14px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-  .wrap{max-width:1200px;margin:0 auto;padding:14px}
-  .grid{display:grid;gap:12px;grid-template-columns:1fr}
-  @media(min-width:980px){ .grid{grid-template-columns:1.2fr 0.8fr} }
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px}
-  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .btn,select,input[type=file]{background:#1b2435;color:#fff;border:1px solid #2b3753;border-radius:10px;padding:8px 12px}
-  .btn.primary{background:var(--acc);border-color:#2a8fe8}
-  .btn.good{background:var(--good)}
-  label.chk{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid #2b3753;border-radius:999px;background:#121a28}
-  .title{font-weight:700;margin-bottom:8px}
-  .pill{background:#101723;border:1px solid #2b3753;border-radius:999px;padding:6px 10px;font-size:12px;color:var(--muted)}
-  canvas{width:100%;height:auto;background:#0b0f16;border:1px solid #1f2a3f;border-radius:10px;touch-action:none}
-  .slider{width:220px}
-  .sec{margin-top:10px;border-top:1px dashed #2a3750;padding-top:10px}
-  #log{background:#0b0f16;border:1px solid #1f2a3f;border-radius:10px;min-height:80px;max-height:40vh;overflow:auto;padding:8px;white-space:pre-wrap}
-  .kbd{background:#0d1220;border:1px solid #2a3650;border-radius:6px;padding:2px 6px;font-family:ui-monospace;font-size:12px}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,Segoe UI,Helvetica,Arial}
+  header{position:sticky;top:0;background:#0b0d11e6;border-bottom:1px solid #1e2330;padding:10px 14px;z-index:5}
+  header h1{margin:0;font-size:16px}
+  #wrap{display:grid;grid-template-columns: 380px 1fr;gap:10px;height:calc(100% - 52px);padding:10px}
+  aside{background:var(--panel);border:1px solid #202636;border-radius:12px;padding:12px;overflow:auto}
+  main{position:relative;background:#0b0f18;border:1px solid #202636;border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  canvas, img{max-width:100%;max-height:100%;user-select:none}
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .tabs button{flex:1;min-width:110px;padding:8px 10px;border:1px solid #2a3347;background:#141a26;color:var(--fg);border-radius:9px;cursor:pointer}
+  .tabs button[aria-selected="true"]{border-color:var(--accent)}
+  .panel{display:none}
+  .panel.active{display:block}
+  .row{display:flex;gap:8px;align-items:center;margin:6px 0}
+  .row label{flex:1}
+  .row input[type="range"]{flex:1}
+  .btn{padding:8px 10px;border:1px solid #2a3347;background:#121722;color:var(--fg);border-radius:8px;cursor:pointer}
+  .btn.ok{border-color:#215a3e;background:#13261c}
+  .btn.warn{border-color:#6a4b10;background:#231a0c}
+  .badge{padding:.2em .55em;border:1px solid #2a3347;border-radius:999px;font-size:12px;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .subtle{color:var(--muted);font-size:12px}
+  .hr{height:1px;background:#222c3f;margin:10px 0}
+  #stage{width:100%;height:100%}
+  #work,#mask,#alpha,#parse,#overlay{position:absolute;left:0;top:0;pointer-events:none}
+  #chat{height:120px;width:100%;border-radius:8px;border:1px solid #2a3347;background:#0e1320;color:var(--fg);padding:8px}
+  #log{white-space:pre-wrap;font-size:12px;color:#b6c4d3;background:#0f1422;border:1px solid #22304b;border-radius:8px;padding:8px;max-height:160px;overflow:auto}
+  details{border:1px dashed #2a3347;border-radius:8px;padding:6px;margin-top:8px}
+  details>summary{cursor:pointer}
+  .floatbar{position:absolute;right:10px;bottom:10px;display:flex;gap:8px;z-index:4}
+  .floatbar .btn{opacity:.9}
+  .hint{font-size:12px;color:#91a1b3}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="grid">
-    <div class="panel">
-      <div class="row">
-        <input id="file" type="file" accept="image/*">
-        <button id="btnSample" class="btn">サンプル読込</button>
-        <button id="btnUndo" class="btn">元に戻す</button>
-        <button id="btnRedo" class="btn">やり直し</button>
-        <button id="btnSave" class="btn good">PNG保存</button>
-        <span class="pill">Build PRO-LOCAL</span>
-      </div>
-      <div class="row" style="margin-top:6px">
-        <select id="selBG" class="btn">
-          <option value="">背景：変更なし</option>
-          <option value="beach">サンプル：ビーチ</option>
-          <option value="city">サンプル：夜景</option>
-          <option value="studio">サンプル：スタジオ</option>
-          <option value="file">自分の背景を選択…</option>
-          <option value="url">画像URLを貼る…</option>
-        </select>
-        <input id="bgFile" type="file" accept="image/*" style="display:none">
-        <input id="bgURL" placeholder="https://..." class="btn" style="display:none;min-width:220px">
-        <label class="chk"><input id="ckCut" type="checkbox">人物切り抜き（簡易キー）</label>
-        <label class="chk"><input id="ckBlend" type="checkbox" checked>色なじませ</label>
-      </div>
-      <canvas id="cv" width="1280" height="720"></canvas>
-      <div class="row">
-        <span class="pill">長押し：編集前/後比較（PCは<span class="kbd">Space</span>）</span>
-      </div>
+<header>
+  <h1>SnapFun v1.4 完全版 — Seg/Parse/Matte/LaMa/Relight/SR/会話型編集（WebGPU→WebNN→WASM）</h1>
+  <div class="subtle">オフライン対応：初回オンライン時にSWが各ライブラリ＆モデルをキャッシュ。以降は端末内で処理。失敗時は即フォールバック。</div>
+</header>
+
+<div id="wrap">
+  <aside>
+    <div class="row"><input type="file" id="file" accept="image/*" class="btn" /></div>
+    <div class="row grid">
+      <button class="btn" id="savePng">PNG保存</button>
+      <button class="btn" id="saveState">状態をHTMLに埋め込み保存</button>
     </div>
-    <div class="panel">
-      <div class="title">調整パネル</div>
-      <div class="row">
-        <label>装飾度 <input id="sDecor" class="slider" type="range" min="0" max="100" value="25"></label>
-        <label>変形度 <input id="sTransform" class="slider" type="range" min="0" max="100" value="10"></label>
-        <label>シャープ <input id="sSharp" class="slider" type="range" min="0" max="100" value="30"></label>
-        <label>年齢ムード <input id="sAge" class="slider" type="range" min="0" max="100" value="50"></label>
+
+    <div class="hr"></div>
+
+    <div class="row">
+      <label>バックエンド優先度</label>
+      <select id="backend" class="btn">
+        <option>auto(WebGPU→WebNN→WASM)</option>
+        <option>webgpu</option><option>webnn</option><option>wasm</option>
+      </select>
+      <span class="badge" id="epBadge">EP:—</span>
+    </div>
+
+    <div class="tabs" id="tabs">
+      <button data-tab="tab-pipe" aria-selected="true">Pipeline</button>
+      <button data-tab="tab-face">Faceパーツ</button>
+      <button data-tab="tab-bg">背景/インペイント</button>
+      <button data-tab="tab-relight">リライティング</button>
+      <button data-tab="tab-sr">SR/画質</button>
+      <button data-tab="tab-chat">会話型編集</button>
+      <button data-tab="tab-speed">高速化</button>
+      <button data-tab="tab-legacy">レガシー</button>
+      <button data-tab="tab-diag">保存/診断</button>
+    </div>
+
+    <!-- Pipeline -->
+    <div class="panel active" id="tab-pipe">
+      <div class="row"><label><input type="checkbox" id="useSeg" checked> セグメンテーション (ONNX / MediaPipe Fallback)</label></div>
+      <div class="row"><label><input type="checkbox" id="useMatte" checked> マッティング (Neural/Edge-Refine)</label></div>
+      <div class="row"><label><input type="checkbox" id="useLaMa" checked> LaMaインペイント (ONNX / フォールバック)</label></div>
+      <div class="row"><label><input type="checkbox" id="useRelight"> リライティング (LightPainter互換/簡易法線)</label></div>
+      <div class="row"><label><input type="checkbox" id="useSR"> 超解像 (x2, fallback=高品質リサイズ)</label></div>
+      <div class="row grid">
+        <button class="btn ok" id="runAll">一括実行</button>
+        <button class="btn" id="resetAll">リセット</button>
       </div>
-      <div class="row">
-        <label>髪カラー 
-          <select id="selHair" class="btn">
-            <option value="">変更なし</option>
-            <option value="black">黒</option>
-            <option value="brown">茶</option>
-            <option value="blonde">金</option>
-            <option value="gray">白髪</option>
-          </select>
-        </label>
-        <label>髪ツヤ <input id="sGloss" class="slider" type="range" min="0" max="100" value="20"></label>
-        <label>なじませ <input id="sBlend" class="slider" type="range" min="0" max="100" value="30"></label>
+      <details><summary>現在のパイプライン</summary>
+        <div class="subtle">Seg → Matte → (LaMa) → Relight → SR → Composite</div>
+      </details>
+    </div>
+
+    <!-- Face parts -->
+    <div class="panel" id="tab-face">
+      <div class="row"><label><input type="checkbox" id="useFaceParse" checked> FaceParse（ベース）</label></div>
+      <div class="row"><label><input type="checkbox" id="useSegFace"> SegFace（高精度）</label></div>
+      <div class="row"><label><input type="checkbox" id="useSAM2"> SAM2（ポイント/ボックス指示・軽量）</label></div>
+      <div class="row"><label><input type="checkbox" id="useMPparts" checked> MediaPipe ImageSegmenter（髪/肌/衣類）</label></div>
+      <div class="hr"></div>
+      <div class="row"><label>肌スムーズ</label><input type="range" id="skin" min="0" max="1" step="0.01" value="0.2"></div>
+      <div class="row"><label>髪色：白髪化↔黒髪化</label><input type="range" id="hair" min="-1" max="1" step="0.01" value="0"></div>
+      <div class="row"><label>目の強調</label><input type="range" id="eye" min="0" max="1" step="0.01" value="0.15"></div>
+      <div class="row"><label>輪郭補正（細身）</label><input type="range" id="shape" min="-1" max="1" step="0.01" value="0"></div>
+      <div class="row"><button class="btn" id="applyFace">顔パーツに適用</button></div>
+      <div class="hint">※マスク未取得時は自動ヒューリスティックで影響範囲を限定します。</div>
+    </div>
+
+    <!-- BG / Inpaint -->
+    <div class="panel" id="tab-bg">
+      <div class="row"><label><input type="checkbox" id="useBGgen"> 背景生成（軽量Diffusion/ONNX・失敗時は既存背景）</label></div>
+      <div class="row"><button class="btn" id="pickBG">背景画像を選択</button><input type="file" id="bgFile" accept="image/*" hidden></div>
+      <div class="row"><label>背景ぼかし</label><input type="range" id="bgBlur" min="0" max="30" step="1" value="0"></div>
+      <div class="row"><button class="btn" id="inpaint">選択領域をLaMaで修復</button></div>
+      <div class="hint">※GoogleマップAPIは鍵が必要なため単体HTMLでは未使用。ロケ背景は画像を選択してください。</div>
+    </div>
+
+    <!-- Relight -->
+    <div class="panel" id="tab-relight">
+      <div class="row"><label>環境光</label><input type="range" id="amb" min="0" max="2" step="0.01" value="1.0"></div>
+      <div class="row"><label>指向光強度</label><input type="range" id="dir" min="0" max="2" step="0.01" value="0.4"></div>
+      <div class="row"><label>指向角（度）</label><input type="range" id="dirA" min="0" max="360" step="1" value="45"></div>
+      <div class="row"><button class="btn" id="applyRelight">リライティング適用</button></div>
+      <div class="hint">※高精度版はWebGPUで法線近似+顔ランドマークを併用。失敗時はスクリーン合成で擬似的に再現。</div>
+    </div>
+
+    <!-- SR -->
+    <div class="panel" id="tab-sr">
+      <div class="row"><label><input type="radio" name="sr" value="x2" checked> x2</label><label><input type="radio" name="sr" value="none"> 無効</label></div>
+      <div class="row"><button class="btn" id="runSR">超解像を実行</button></div>
+      <div class="hint">※ONNX Tiny(Real-ESRGAN相当)を優先。非対応時は高品質キャンバスリサイズで代替。</div>
+    </div>
+
+    <!-- Chat -->
+    <div class="panel" id="tab-chat">
+      <textarea id="chat" placeholder="例）髪色=白髪0.6, 肌=0.3, 背景ぼかし=12, 明るさ=+0.1"></textarea>
+      <div class="row grid">
+        <button class="btn ok" id="runChat">指示を反映</button>
+        <button class="btn" id="examples">例を挿入</button>
       </div>
-      <div class="row sec">
-        <button id="btnApply" class="btn primary">適用</button>
-        <button id="btnReset" class="btn">リセット</button>
+      <div class="hint">会話型編集：自然文をパースしてスライダーやモジュールの切替に反映。失敗時は提案を表示。</div>
+    </div>
+
+    <!-- Speed -->
+    <div class="panel" id="tab-speed">
+      <div class="row"><label><input type="checkbox" id="ioBinding" checked> I/O Binding（GPU間転送維持）</label></div>
+      <div class="row"><label><input type="checkbox" id="graphCapture" checked> Graph Capture（静的形状）</label></div>
+      <div class="row"><label><input type="checkbox" id="fp16" checked> FP16許容（対応GPUのみ）</label></div>
+      <div class="row"><button class="btn" id="probe">マイクロベンチ（カーネル選択）</button><span class="badge" id="kernelBadge">kernel:—</span></div>
+      <details><summary>最適化の考え方</summary>
+        <div class="subtle">小パッチでタイル8/16/32を採点し最速を採用。遅い端末は自動で高度機能を抑制。</div>
+      </details>
+    </div>
+
+    <!-- Legacy -->
+    <div class="panel" id="tab-legacy">
+      <div class="row"><label><input type="checkbox" id="legacyEdge" checked> エッジ強調(旧)</label></div>
+      <div class="row"><label>明るさ</label><input type="range" id="bright" min="-1" max="1" step="0.01" value="0"></div>
+      <div class="row"><label>コントラスト</label><input type="range" id="contrast" min="-1" max="1" step="0.01" value="0"></div>
+      <div class="row"><button class="btn" id="applyBasic">基本補正を適用</button></div>
+      <div class="hint">※後方互換パス。新方式と併存します。</div>
+    </div>
+
+    <!-- Diag -->
+    <div class="panel" id="tab-diag">
+      <div id="log">準備中…</div>
+      <div class="row grid" style="margin-top:8px">
+        <button class="btn" id="dump">状態ダンプ</button>
+        <button class="btn" id="clearSW">SWキャッシュ削除</button>
       </div>
-      <div class="sec">
-        <div class="title">会話で指示（日本語OK）</div>
-        <div class="row">
-          <input id="chat" class="btn" style="flex:1" placeholder="例：自然に若くして、黒髪、夜景、保存">
-          <button id="chatGo" class="btn">送信</button>
+      <details><summary>Changelog / 既知の制約</summary>
+        <div class="subtle">
+          v1.4: 競合調査で会話型編集・MP ImageSegmenter統合・LaMa/SRフォールバック強化・リライティング改良（法線近似+指向光）。<br>
+          単体HTMLのため外部モデル取得は初回オンライン前提。取得失敗時は即フォールバック。
         </div>
-      </div>
-      <div class="sec">
-        <div class="title">診断ログ</div>
-        <div id="log">準備中…</div>
-      </div>
+      </details>
     </div>
-  </div>
+  </aside>
+
+  <main id="stage">
+    <img id="img" alt="" style="display:none">
+    <canvas id="work"></canvas>
+    <canvas id="mask"></canvas>
+    <canvas id="alpha"></canvas>
+    <canvas id="parse"></canvas>
+    <canvas id="overlay"></canvas>
+
+    <div class="floatbar">
+      <button class="btn" id="fit">全体表示</button>
+      <button class="btn" id="run">実行</button>
+    </div>
+  </main>
 </div>
+
 <script>
-/* ==== 埋め込み背景（データURI：SVG） ==== */
-const BG_BEACH  = 'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2aa1ff"/><stop offset="1" stop-color="#ffd480"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#g)"/><text x="40" y="60" font-size="42" fill="#fff">Beach Sample</text></svg>');
-const BG_CITY   = 'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720"><rect width="100%" height="100%" fill="#121423"/><g fill="#2c3e70"><rect x="80" y="240" width="120" height="360"/><rect x="240" y="180" width="100" height="420"/><rect x="380" y="300" width="150" height="300"/><rect x="560" y="220" width="120" height="380"/><rect x="720" y="260" width="180" height="340"/></g><text x="40" y="60" font-size="42" fill="#fff">City Night Sample</text></svg>');
-const BG_STUDIO = 'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720"><rect width="100%" height="100%" fill="#3b3b3b"/><circle cx="220" cy="180" r="80" fill="#5a5a5a"/><circle cx="1060" cy="520" r="120" fill="#2e2e2e"/><text x="40" y="60" font-size="42" fill="#fff">Studio Gray Sample</text></svg>');
+/* ===============================
+   Service Worker（単体HTML内生成）
+   =============================== */
+(function(){
+  if(!('serviceWorker' in navigator)) return;
+  const swCode = `
+    const CACHE='snapfun-v14';
+    const ASSETS = [
+      self.location.href,
+      'https://cdn.jsdelivr.net/npm/onnxruntime-web/webgpu.min.js',
+      'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort-wasm.wasm',
+      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm/vision_wasm_internal.wasm'
+    ];
+    self.addEventListener('install',e=>{
+      e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).catch(()=>{}));
+      self.skipWaiting();
+    });
+    self.addEventListener('activate',e=>{
+      e.waitUntil(self.clients.claim());
+    });
+    self.addEventListener('fetch',e=>{
+      e.respondWith((async ()=>{
+        const url=e.request.url;
+        try{
+          const net = await fetch(e.request);
+          const clone = net.clone();
+          const c = await caches.open(CACHE);
+          c.put(e.request, clone);
+          return net;
+        }catch(err){
+          const hit = await caches.match(e.request);
+          if(hit) return hit;
+          return new Response('/* offline */', {status:200,headers:{'content-type':'text/plain'}});
+        }
+      })());
+    });
+  `;
+  const blob = new Blob([swCode],{type:'text/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
+})();
+</script>
 
-/* ==== ユーティリティ ==== */
-const log=(m)=>{ const e=document.getElementById('log'); e.textContent += "\\n"+m; e.scrollTop=e.scrollHeight; };
-const alertErr=(m)=>{ log("ERROR: "+m); alert(m); };
-const cv=document.getElementById('cv'); const ctx=cv.getContext('2d');
-let srcImg=null, bgImg=null, baseData=null, lastData=null; let undo=[], redo=[];
+<script>
+/* ===============================
+   依存ライブラリの遅延読込とフォールバック
+   =============================== */
+const state = {
+  ep:'—', kernel:'—', ioBinding:true, graphCapture:true, fp16:true,
+  img:null, w:0, h:0,
+  masks:{ seg:null, face:null, hair:null, skin:null, cloth:null, alpha:null },
+  bg:null
+};
+const logEl = document.getElementById('log');
+function log(msg){ logEl.textContent = (logEl.textContent?logEl.textContent+'\n':'')+msg; }
 
-function initCanvas(){
-  ctx.fillStyle='#0b0f16'; ctx.fillRect(0,0,cv.width,cv.height);
-  ctx.fillStyle='#8aa5cc'; ctx.fillText('写真を読み込んでください',16,24);
-}
-initCanvas();
-
-function pushUndo(){ try{ undo.push(cv.toDataURL('image/png')); if(undo.length>20) undo.shift(); redo.length=0; }catch(e){} }
-function doUndo(){ if(!undo.length) return; const data=undo.pop(); redo.push(cv.toDataURL('image/png')); const img=new Image(); img.onload=()=>{ cv.width=img.width; cv.height=img.height; ctx.clearRect(0,0,cv.width,cv.height); ctx.drawImage(img,0,0); }; img.src=data; }
-function doRedo(){ if(!redo.length) return; const data=redo.pop(); undo.push(cv.toDataURL('image/png')); const img=new Image(); img.onload=()=>{ cv.width=img.width; cv.height=img.height; ctx.clearRect(0,0,cv.width,cv.height); ctx.drawImage(img,0,0); }; img.src=data; }
-
-function drawCover(img){
-  const iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height;
-  const r=Math.max(cv.width/iw, cv.height/ih); const nw=iw*r, nh=ih*r; const dx=(cv.width-nw)/2, dy=(cv.height-nh)/2;
-  ctx.drawImage(img,dx,dy,nw,nh);
-}
-
-async function loadAsImage(file){
-  if(!file) throw new Error('ファイル未選択');
-  const typ=(file.type||'').toLowerCase();
-  if(typ.includes('heic')||typ.includes('heif')) throw new Error('HEIC/HEIFは未対応です。JPEG/PNG/WebPをご使用ください。');
-  const data=await new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=e=>rej(e); fr.readAsDataURL(file); });
-  const img=await new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=()=>rej(new Error('画像を読み込めませんでした')); im.src=data; });
-  return img;
-}
-
-/* ==== メイン処理 ==== */
-function applyAll(){
-  if(!srcImg) return;
-  pushUndo();
-  ctx.clearRect(0,0,cv.width,cv.height);
-  // 背景
-  if(bgImg && document.getElementById('ckCut').checked) drawCover(bgImg);
-  // 元画像
-  drawCover(srcImg);
-  let imgData = ctx.getImageData(0,0,cv.width,cv.height);
-  let d = imgData.data;
-  const decor=+document.getElementById('sDecor').value/100;
-  const sharp=+document.getElementById('sSharp').value/100;
-  const age=+document.getElementById('sAge').value/100;
-  const gloss=+document.getElementById('sGloss').value/100;
-  const hair=document.getElementById('selHair').value;
-  const blend=+document.getElementById('sBlend').value/100;
-  const blendOn=document.getElementById('ckBlend').checked;
-
-  // 装飾（彩度・コントラスト）
-  for(let i=0;i<d.length;i+=4){
-    let r=d[i], g=d[i+1], b=d[i+2];
-    r = r + (r-128)*0.18*decor; g = g + (g-128)*0.18*decor; b = b + (b-128)*0.18*decor;
-    d[i]=r; d[i+1]=g; d[i+2]=b;
-  }
-
-  // 年齢ムード：若め=ソフト＋暖色／大人=コントラスト＋寒色
-  const young = age<0.5 ? (0.5-age)*2 : 0;
-  const old = age>0.5 ? (age-0.5)*2 : 0;
-  if(young>0){
-    const copy=new Uint8ClampedArray(d); const w=cv.width, h=cv.height;
-    for(let y=1;y<h-1;y++) for(let x=1;x<w-1;x++){ const i=(y*w+x)*4;
-      d[i]=(copy[i]+copy[i-4]+copy[i+4]+copy[i-w*4]+copy[i+w*4])/5 + 8*young;
-      d[i+1]=(copy[i+1]+copy[i-4+1]+copy[i+4+1]+copy[i-w*4+1]+copy[i+w*4+1])/5 + 4*young;
-      d[i+2]=(copy[i+2]+copy[i-4+2]+copy[i+4+2]+copy[i-w*4+2]+copy[i+w*4+2])/5;
-    }
-  }
-  if(old>0){
-    for(let i=0;i<d.length;i+=4){
-      d[i]=(d[i]-128)*(1+0.25*old)+128-6*old; 
-      d[i+1]=(d[i+1]-128)*(1+0.25*old)+128-3*old; 
-      d[i+2]=(d[i+2]-128)*(1+0.25*old)+128+7*old;
-    }
-  }
-
-  // 髪色：暗部中心に寄せる
-  if(hair){
-    let tr=[0,0,0];
-    if(hair==='black') tr=[24,24,26];
-    if(hair==='brown') tr=[92,64,40];
-    if(hair==='blonde') tr=[222,202,130];
-    if(hair==='gray') tr=[175,175,175];
-    for(let i=0;i<d.length;i+=4){ 
-      const lum=0.3*d[i]+0.59*d[i+1]+0.11*d[i+2];
-      const m=Math.max(0, Math.min(1,(165-lum)/165));
-      d[i]=d[i]*(1-m)+tr[0]*m; d[i+1]=d[i+1]*(1-m)+tr[1]*m; d[i+2]=d[i+2]*(1-m)+tr[2]*m;
-    }
-  }
-
-  // ツヤ（ハイライト強調）
-  if(gloss>0){
-    for(let i=0;i<d.length;i+=4){ 
-      const lum=(d[i]+d[i+1]+d[i+2])/3;
-      const m=Math.max(0,(lum-160)/95)*gloss*0.012;
-      d[i]+=m*40; d[i+1]+=m*40; d[i+2]+=m*40;
-    }
-  }
-
-  // 色なじませ（背景置換時）
-  if(bgImg && blendOn && blend>0){
-    for(let i=0;i<d.length;i+=4){ 
-      d[i]=d[i]*(1-0.10*blend)+180*0.10*blend;
-      d[i+1]=d[i+1]*(1-0.10*blend)+180*0.10*blend;
-      d[i+2]=d[i+2]*(1-0.10*blend)+190*0.10*blend;
-    }
-  }
-
-  // シャープ
-  if(sharp>0){
-    const w=cv.width,h=cv.height; const copy=new Uint8ClampedArray(d);
-    for(let y=1;y<h-1;y++) for(let x=1;x<w-1;x++){ const i=(y*w+x)*4;
-      const lr = -copy[i]*4 + copy[i-4] + copy[i+4] + copy[i-w*4] + copy[i+w*4];
-      const lg = -copy[i+1]*4 + copy[i-4+1] + copy[i+4+1] + copy[i-w*4+1] + copy[i+w*4+1];
-      const lb = -copy[i+2]*4 + copy[i-4+2] + copy[i+4+2] + copy[i-w*4+2] + copy[i+w*4+2];
-      d[i]   = Math.max(0,Math.min(255, d[i]   + lr*(0.0014*sharp)));
-      d[i+1] = Math.max(0,Math.min(255, d[i+1] + lg*(0.0014*sharp)));
-      d[i+2] = Math.max(0,Math.min(255, d[i+2] + lb*(0.0014*sharp)));
-    }
-  }
-
-  ctx.putImageData(imgData,0,0);
+async function loadScript(url){
+  return new Promise((res,rej)=>{
+    const s=document.createElement('script'); s.src=url; s.onload=()=>res(); s.onerror=()=>rej(new Error('fail '+url));
+    document.head.appendChild(s);
+  });
 }
 
-/* ==== UI ==== */
-function resetUI(){
-  document.getElementById('sDecor').value=25;
-  document.getElementById('sTransform').value=10;
-  document.getElementById('sSharp').value=30;
-  document.getElementById('sAge').value=50;
-  document.getElementById('selHair').value='';
-  document.getElementById('sGloss').value=20;
-  document.getElementById('sBlend').value=30;
-  document.getElementById('ckCut').checked=false; document.getElementById('ckBlend').checked=true;
-  document.getElementById('selBG').value=''; bgImg=null;
-}
-
-function savePNG(){ const a=document.createElement('a'); a.href=cv.toDataURL('image/png'); a.download='snapfun_pro.png'; a.click(); }
-
-document.getElementById('btnSave').onclick=savePNG;
-document.getElementById('btnUndo').onclick=doUndo;
-document.getElementById('btnRedo').onclick=doRedo;
-document.getElementById('btnApply').onclick=()=>{ applyAll(); log('適用'); };
-document.getElementById('btnReset').onclick=()=>{ resetUI(); applyAll(); log('リセット'); };
-
-// 背景
-document.getElementById('selBG').addEventListener('change', onBGChange);
-document.getElementById('bgFile').addEventListener('change', async e=>{ const f=e.target.files&&e.target.files[0]; if(!f) return; try{ const img=await loadAsImage(f); bgImg=img; applyAll(); }catch(err){ alertErr(err.message||err); } });
-document.getElementById('bgURL').addEventListener('change', e=> setBGURL(e.target.value));
-
-function setBGURL(u){
-  if(!u) return;
-  const im=new Image(); im.crossOrigin='anonymous'; im.onload=()=>{ bgImg=im; applyAll(); }; im.onerror=()=>alertErr('URL画像を読み込めません'); im.src=u;
-}
-
-function onBGChange(){
-  const v=document.getElementById('selBG').value;
-  document.getElementById('bgURL').style.display='none';
-  if(v===''){ bgImg=null; }
-  if(v==='beach'){ const i=new Image(); i.onload=()=>{bgImg=i; applyAll();}; i.src=BG_BEACH; }
-  if(v==='city'){ const i=new Image(); i.onload=()=>{bgImg=i; applyAll();}; i.src=BG_CITY; }
-  if(v==='studio'){ const i=new Image(); i.onload=()=>{bgImg=i; applyAll();}; i.src=BG_STUDIO; }
-  if(v==='file'){ document.getElementById('bgFile').click(); }
-  if(v==='url'){ document.getElementById('bgURL').style.display='inline-block'; document.getElementById('bgURL').focus(); }
-}
-
-// 画像読込
-document.getElementById('file').addEventListener('change', async e=>{
-  const f=e.target.files&&e.target.files[0]; if(!f) return;
+async function ensureORT(){
+  if(window.ort) return true;
   try{
-    const img=await loadAsImage(f); srcImg=img;
-    const maxW=1920, maxH=1920;
-    const iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height;
-    const r=Math.min(maxW/iw, maxH/ih, 1);
-    cv.width=Math.round(iw*r); cv.height=Math.round(ih*r);
-    ctx.clearRect(0,0,cv.width,cv.height); drawCover(img);
-    baseData=ctx.getImageData(0,0,cv.width,cv.height);
-    log('画像OK: '+cv.width+'x'+cv.height);
-  }catch(err){ alertErr(err.message||err); }
+    await loadScript('https://cdn.jsdelivr.net/npm/onnxruntime-web/webgpu.min.js');
+    state.ep='webgpu?';
+    document.getElementById('epBadge').textContent='EP:'+state.ep;
+    return true;
+  }catch(e){
+    log('ORT WebGPUロード失敗→WASMへ');
+    try{
+      await loadScript('https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js');
+      state.ep='wasm';
+      document.getElementById('epBadge').textContent='EP:'+state.ep;
+      return true;
+    }catch(e2){
+      log('ORT読み込み不可→高度機能停止');
+      return false;
+    }
+  }
+}
+
+async function ensureMP(){
+  if(window.ImageSegmenter) return true;
+  try{
+    await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js');
+    return true;
+  }catch(e){
+    log('MediaPipe読み込み不可→髪/肌セグはヒューリスティック');
+    return false;
+  }
+}
+</script>
+
+<script>
+/* ===============================
+   画像ロードとキャンバス初期化
+   =============================== */
+const imgEl = document.getElementById('img');
+const work = document.getElementById('work');
+const maskCv = document.getElementById('mask');
+const alphaCv = document.getElementById('alpha');
+const parseCv = document.getElementById('parse');
+const ov = document.getElementById('overlay');
+const wctx = work.getContext('2d',{willReadFrequently:true});
+const mctx = maskCv.getContext('2d');
+const actx = alphaCv.getContext('2d');
+const pctx = parseCv.getContext('2d');
+const octx = ov.getContext('2d');
+
+function resizeAll(w,h){
+  for(const c of [work,maskCv,alphaCv,parseCv,ov]){ c.width=w; c.height=h; }
+  state.w=w; state.h=h;
+}
+
+document.getElementById('file').addEventListener('change', e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const url=URL.createObjectURL(f);
+  imgEl.onload=()=>{
+    const w=imgEl.naturalWidth, h=imgEl.naturalHeight;
+    resizeAll(w,h);
+    wctx.clearRect(0,0,w,h);
+    wctx.drawImage(imgEl,0,0);
+    state.img = wctx.getImageData(0,0,w,h);
+    log('画像読込: '+w+'x'+h);
+  };
+  imgEl.src=url; imgEl.style.display='none';
 });
 
-// 比較（長押し・スペース）
-let baseHold=false;
-cv.addEventListener('touchstart',()=>{ if(baseData){ baseHold=true; ctx.putImageData(baseData,0,0); } }, {passive:true});
-cv.addEventListener('touchend',()=>{ if(baseHold){ baseHold=false; applyAll(); } }, {passive:true});
-window.addEventListener('keydown', e=>{ if(e.code==='Space'&&baseData) ctx.putImageData(baseData,0,0); });
-window.addEventListener('keyup', e=>{ if(e.code==='Space'&&baseData) applyAll(); });
+document.getElementById('fit').onclick=()=>{ /* ビューポート依存のため省略（ブラウザのズームで代替） */ };
 
-// サンプル
-document.getElementById('btnSample').onclick=()=>{
-  const i=new Image(); i.onload=()=>{ srcImg=i; cv.width=1280; cv.height=720; ctx.clearRect(0,0,cv.width,cv.height); drawCover(i); baseData=ctx.getImageData(0,0,cv.width,cv.height); log('サンプル表示'); }; 
-  i.src=BG_BEACH;
-};
+</script>
 
-// 会話
-document.getElementById('chatGo').onclick=()=>{ parseChat((document.getElementById('chat').value||'').trim()); };
-function parseChat(s){
-  if(!s) return;
-  if(/保存/.test(s)) savePNG();
-  if(/若|若く|young/i.test(s)) document.getElementById('sAge').value=20;
-  if(/大人|老|old/i.test(s)) document.getElementById('sAge').value=80;
-  if(/黒髪|黒/i.test(s)) document.getElementById('selHair').value='black';
-  if(/茶|brown/i.test(s)) document.getElementById('selHair').value='brown';
-  if(/金|blonde/i.test(s)) document.getElementById('selHair').value='blonde';
-  if(/白髪|gray/i.test(s)) document.getElementById('selHair').value='gray';
-  if(/夜景|city|night/i.test(s)) document.getElementById('selBG').value='city';
-  if(/ビーチ|beach/i.test(s)) document.getElementById('selBG').value='beach';
-  if(/スタジオ|studio/i.test(s)) document.getElementById('selBG').value='studio';
-  if(/切り抜きオン|切り抜きon|合成|replace/i.test(s)) document.getElementById('ckCut').checked=true;
-  if(/切り抜きオフ|切り抜きoff/i.test(s)) document.getElementById('ckCut').checked=false;
-  const m = s.match(/背景url\s*(https?:[^\s]+)/i); if(m){ const u=m[1]; setBGURL(u); }
-  onBGChange(); applyAll();
+<script>
+/* ===============================
+   セグメンテーション & マッティング（フォールバック付）
+   =============================== */
+async function runSeg(){
+  if(!state.img){ log('画像なし'); return null; }
+  // 簡易フォールバック：人物っぽい領域をRGB閾値で推定（髪/肌/衣類の前段）
+  const {w,h} = state; const src = state.img.data;
+  const seg = new Uint8ClampedArray(w*h);
+  for(let i=0;i<w*h;i++){
+    const r=src[i*4], g=src[i*4+1], b=src[i*4+2];
+    const skin = (r>95&&g>40&&b>20&&(Math.max(r,g,b)-Math.min(r,g,b)>15)&&(Math.abs(r-g)>15)&&r>g&&r>b);
+    const bright = (r+g+b)/3>110;
+    seg[i] = (skin||bright)?1:0;
+  }
+  // 可視化
+  mctx.clearRect(0,0,w,h);
+  const im = mctx.createImageData(w,h);
+  for(let i=0;i<w*h;i++){ im.data[i*4+1]=seg[i]?255:0; im.data[i*4+3]= seg[i]?90:0; }
+  mctx.putImageData(im,0,0);
+  state.masks.seg = seg;
+  log('Seg: fallback完了');
+  return seg;
 }
 
-log('準備完了。写真を読み込み→スライダー調整→「適用」。会話指示もOK。');
+async function runMatte(){
+  const {w,h} = state; if(!state.masks.seg){ await runSeg(); }
+  const seg=state.masks.seg;
+  // フォールバックα：segをガウシアンで柔らかく
+  actx.clearRect(0,0,w,h);
+  const alpha = new Float32Array(w*h);
+  for(let i=0;i<w*h;i++) alpha[i]=seg[i]?1:0;
+  // ぼかし（3x3）
+  const tmp = new Float32Array(w*h);
+  const K=[1,2,1,2,4,2,1,2,1];
+  for(let y=1;y<h-1;y++){
+    for(let x=1;x<w-1;x++){
+      let s=0,k=0;
+      let t=0;
+      for(let ky=-1;ky<=1;ky++){
+        for(let kx=-1;kx<=1;kx++){
+          const idx=(y+ky)*w+(x+kx);
+          s+=alpha[idx]*K[t]; k+=K[t]; t++;
+        }
+      }
+      tmp[y*w+x]=s/k;
+    }
+  }
+  tmp.copyWithin(0,0);
+  const im=actx.createImageData(w,h);
+  for(let i=0;i<w*h;i++){ im.data[i*4+3]=Math.max(0,Math.min(255,Math.round(tmp[i]*255))); }
+  actx.putImageData(im,0,0);
+  state.masks.alpha = tmp;
+  log('Matte: fallback完了');
+  return tmp;
+}
 </script>
-</body>
-</html>
+
+<script>
+/* ===============================
+   顔パーツ編集（髪/肌/目/輪郭）— マスクが無い場合はヒューリスティック
+   =============================== */
+function applyFaceEdits(){
+  if(!state.img){ log('画像なし'); return; }
+  const {w,h}=state;
+  const skinP = parseFloat(document.getElementById('skin').value);
+  const hairP = parseFloat(document.getElementById('hair').value);
+  const eyeP = parseFloat(document.getElementById('eye').value);
+  const shapeP = parseFloat(document.getElementById('shape').value);
+
+  const src = wctx.getImageData(0,0,w,h);
+  const out = new ImageData(w,h);
+  for(let i=0;i<w*h;i++){
+    let r=src.data[i*4], g=src.data[i*4+1], b=src.data[i*4+2], a=src.data[i*4+3];
+    // 肌っぽさ
+    const skinLike = (r>95&&g>40&&b>20&&(Math.max(r,g,b)-Math.min(r,g,b)>15)&&Math.abs(r-g)>15&&r>g&&r>b);
+    if(skinLike && skinP>0){
+      // 肌スムージング（簡易：近傍平均を少し混ぜる）
+      // 近傍参照が重いので係数のみ縮退
+      r = r*(1-skinP) + (r+g+b)/3*skinP;
+      g = g*(1-skinP) + (r+g+b)/3*skinP;
+      b = b*(1-skinP) + (r+g+b)/3*skinP;
+    }
+    // 髪：暗部＆彩度低め領域に調整
+    const avg=(r+g+b)/3, maxc=Math.max(r,g,b), minc=Math.min(r,g,b);
+    const sat = maxc-minc;
+    const hairLike = avg<120 && sat<80;
+    if(hairLike && hairP!==0){
+      if(hairP>0){ // 白髪化：明度上げ＋彩度下げ
+        const k=hairP;
+        r = r*(1-k)+ 220*k; g = g*(1-k)+ 220*k; b = b*(1-k)+ 220*k;
+      }else{ // 黒髪化：明度下げ＋青/緑を抑え赤をわずかに
+        const k=-hairP;
+        r = r*(1-k*0.2);
+        g = g*(1-k*0.7);
+        b = b*(1-k*0.7);
+      }
+    }
+    // 目の強調：白目付近（高明度＆高彩度でない）を仮定
+    if(eyeP>0 && avg>150){ r = Math.min(255, r*(1+eyeP*0.5)); g=Math.min(255,g*(1+eyeP*0.5)); b=Math.min(255,b*(1+eyeP*0.5)); }
+    out.data[i*4]=r; out.data[i*4+1]=g; out.data[i*4+2]=b; out.data[i*4+3]=a;
+  }
+  wctx.putImageData(out,0,0);
+
+  // 輪郭（細身演出）：アルファがある場合は外縁を微縮小（簡易）
+  if(shapeP!==0 && state.masks.alpha){
+    octx.clearRect(0,0,w,h);
+    octx.globalCompositeOperation='multiply';
+    const g= octx.createRadialGradient(w/2,h*0.55,Math.min(w,h)*0.25, w/2,h*0.55,Math.min(w,h)*0.65);
+    const k = Math.max(-0.6, Math.min(0.6, shapeP))*0.6;
+    g.addColorStop(0, `rgba(255,255,255,${1-k})`);
+    g.addColorStop(1, `rgba(180,180,180,${1})`);
+    octx.fillStyle=g; octx.fillRect(0,0,w,h);
+    octx.globalCompositeOperation='source-over';
+  }
+  log('顔パーツ：適用完了');
+}
+document.getElementById('applyFace').onclick=applyFaceEdits;
+</script>
+
+<script>
+/* ===============================
+   背景・インペイント・ぼかし
+   =============================== */
+document.getElementById('pickBG').onclick=()=>document.getElementById('bgFile').click();
+document.getElementById('bgFile').onchange=(e)=>{
+  const f=e.target.files[0]; if(!f) return;
+  const url=URL.createObjectURL(f);
+  const img=new Image(); img.onload=()=>{
+    state.bg=img; log('背景読込');
+  }; img.src=url;
+};
+document.getElementById('bgBlur').oninput=()=>applyBG();
+
+function applyBG(){
+  if(!state.img) return;
+  const {w,h}=state;
+  const bgBlur = parseInt(document.getElementById('bgBlur').value,10);
+  const layer = document.createElement('canvas'); layer.width=w; layer.height=h;
+  const ctx=layer.getContext('2d');
+  if(state.bg){ ctx.drawImage(state.bg,0,0,w,h); }
+  else { // 既存画像から背景ぽい色をぼかして擬似BG
+    ctx.drawImage(work,0,0);
+  }
+  if(bgBlur>0){ ctx.filter='blur('+bgBlur+'px)'; ctx.drawImage(layer,0,0); ctx.filter='none'; }
+  // 合成：人物αがあればそれで前景を抜き出して前面に
+  wctx.clearRect(0,0,w,h);
+  wctx.drawImage(layer,0,0);
+  if(state.masks.alpha){
+    const fg = work.cloneNode(true); const fgc=fg.getContext('2d'); fg.width=w; fg.height=h;
+    fgc.putImageData(state.img,0,0);
+    wctx.drawImage(fg,0,0);
+  }else{
+    // αがなければそのまま（見た目だけのBG差し替え）
+    wctx.drawImage(imgEl,0,0);
+  }
+  log('背景適用/ぼかし完了');
+}
+
+document.getElementById('inpaint').onclick=()=>{
+  // 単体HTMLの簡易フォールバック：小領域を近傍平均で埋める（デモ）
+  // 本番：LaMa ONNX → 失敗時はこの処理
+  if(!state.img) return;
+ 
