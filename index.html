@@ -1,434 +1,623 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Video AI Summarizer（高速・単一HTML版）</title>
-<style>
-  :root{
-    --bg:#0b0f1a; --panel:#111827; --ink:#e5e7eb; --muted:#9ca3af;
-    --accent:#22c55e; --accent-2:#60a5fa; --danger:#ef4444;
-  }
-  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial}
-  h1{font-size:20px;margin:16px 0}
-  .wrap{max-width:980px;margin:0 auto;padding:20px}
-  .card{background:var(--panel);border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 6px 20px rgba(0,0,0,.25)}
-  .row{display:flex;gap:12px;flex-wrap:wrap}
-  .col{flex:1;min-width:260px}
-  input[type="text"],select{width:100%;padding:12px 14px;border-radius:10px;border:1px solid #1f2937;background:#0f172a;color:var(--ink)}
-  button{padding:12px 16px;border-radius:10px;border:0;background:var(--accent);color:#08110a;font-weight:700;cursor:pointer}
-  button.secondary{background:#334155;color:#e5e7eb}
-  button:disabled{opacity:.5;cursor:wait}
-  .hint{color:var(--muted);font-size:12px}
-  .drop{border:2px dashed #374151;border-radius:16px;padding:26px;text-align:center;background:#0b1220}
-  .drop.drag{border-color:var(--accent)}
-  .meter{height:8px;background:#0f172a;border-radius:99px;overflow:hidden;margin-top:10px}
-  .bar{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
-  .err{color:#fecaca;background:#7f1d1d;border:1px solid #b91c1c;padding:10px;border-radius:10px;display:none;margin-top:10px;white-space:pre-wrap}
-  .ok{color:#bbf7d0;background:#052e16;border:1px solid #15803d;padding:10px;border-radius:10px;display:none;margin-top:10px}
-  .frames{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:12px}
-  .frames img{width:100%;display:block;border-radius:8px}
-  pre{white-space:pre-wrap;background:#0b1020;padding:12px;border-radius:10px}
-  .pill{display:inline-flex;gap:8px;align-items:center;background:#0f172a;padding:8px 10px;border-radius:99px}
-  .toggle input{display:none}
-  .toggle label{cursor:pointer;border-radius:10px;padding:10px 12px;background:#0f172a;border:1px solid #1f2937}
-  .toggle input:checked + label{background:#1a2a17;border-color:#2f5d3a}
-  footer{color:#64748b;font-size:12px;margin:16px 0}
-  .sp{display:flex;gap:8px;align-items:center}
-  .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;background:#0b1020;border:1px solid #1f2937;border-radius:6px;padding:1px 6px}
-</style>
-</head>
-<body>
-<div class="wrap">
-  <h1>Video AI Summarizer（高速・単一HTML）</h1>
-
-  <!-- 設定 -->
-  <div class="card">
-    <div class="row">
-      <div class="col">
-        <label>OpenAI API Key（未入力ならローカル簡易要約）</label>
-        <input id="apiKey" type="text" placeholder="sk-..." />
-        <div class="hint">※キーは端末の <span class="kbd">localStorage</span> にのみ保存。スクショ等に映さないでください。</div>
-      </div>
-      <div class="col">
-        <label>出力言語</label>
-        <select id="lang">
-          <option value="日本語" selected>日本語</option>
-          <option value="English">English</option>
-          <option value="한국어">한국어</option>
-          <option value="简体中文">简体中文</option>
-          <option value="繁體中文">繁體中文</option>
-          <option value="Español">Español</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="row" style="margin-top:10px">
-      <div class="col">
-        <div class="toggle sp">
-          <input type="radio" name="mode" id="m_fast" value="fast" checked>
-          <label for="m_fast">超速（画像のみ：代表12枚・ASRなし）</label>
-        </div>
-      </div>
-      <div class="col">
-        <div class="toggle sp">
-          <input type="radio" name="mode" id="m_std" value="std">
-          <label for="m_std">標準（音声90秒+代表24枚）</label>
-        </div>
-      </div>
-      <div class="col">
-        <div class="toggle sp">
-          <input type="radio" name="mode" id="m_hq" value="hq">
-          <label for="m_hq">高精度（音声10分+代表48枚）</label>
-        </div>
-      </div>
-    </div>
-
-    <div class="row" style="margin-top:10px">
-      <button id="autoBtn">自動解析</button>
-      <button id="resetBtn" class="secondary">リセット</button>
-    </div>
-    <div class="meter"><div id="bar" class="bar"></div></div>
-    <div id="err" class="err"></div>
-    <div id="ok" class="ok"></div>
-  </div>
-
-  <!-- ドロップ -->
-  <div class="card">
-    <h2 style="margin:6px 0 10px">動画をドロップ</h2>
-    <div id="drop" class="drop">
-      <input id="file" type="file" accept="video/*" style="display:none"/>
-      <p id="dropMsg">ここに動画をドロップ、またはクリックして選択</p>
-      <div id="fileInfo" class="hint"></div>
-      <div id="frames" class="frames"></div>
-    </div>
-  </div>
-
-  <!-- 結果 -->
-  <div class="card">
-    <h2 style="margin:6px 0 10px">要約</h2>
-    <pre id="summary" style="min-height:140px">解析するとここに要約が出ます</pre>
-    <div class="row">
-      <button id="saveTxt" class="secondary">要約をテキスト保存</button>
-    </div>
-  </div>
-
-  <footer>
-    速くするコツ：まず「超速」で全体把握 → 必要な時だけ「標準/高精度」に切替。Wi-Fi推奨。
-  </footer>
-</div>
-
-<script>
-/* ========= ユーティリティ ========= */
-const $ = sel => document.querySelector(sel);
-const sleep = ms => new Promise(r=>setTimeout(r,ms));
-const humanSize = b => (b/(1024*1024)).toFixed(1)+'MB';
-const setBar = v => { $('#bar').style.width = Math.max(1,Math.min(100,v)) + '%'; }
-
-const store = {
-  get k(){ return localStorage.getItem('videoai:key')||'' },
-  set k(v){ localStorage.setItem('videoai:key', v||'') }
-}
-
-/* ========= UI初期化 ========= */
-const apiKeyEl = $('#apiKey');
-apiKeyEl.value = store.k;
-apiKeyEl.addEventListener('input', ()=> store.k = apiKeyEl.value.trim());
-
-const drop = $('#drop'), fileInput = $('#file');
-let currentFile = null;
-
-drop.addEventListener('click', ()=> fileInput.click());
-drop.addEventListener('dragover', e=>{ e.preventDefault(); drop.classList.add('drag');});
-drop.addEventListener('dragleave', ()=> drop.classList.remove('drag'));
-drop.addEventListener('drop', e=>{
-  e.preventDefault(); drop.classList.remove('drag');
-  if(e.dataTransfer.files?.length) handleFile(e.dataTransfer.files[0]);
-});
-fileInput.addEventListener('change', e=>{
-  if(e.target.files?.length) handleFile(e.target.files[0]);
-});
-
-$('#resetBtn').onclick = () => {
-  currentFile = null;
-  $('#file').value='';
-  $('#frames').innerHTML='';
-  $('#fileInfo').textContent='';
-  $('#summary').textContent='解析するとここに要約が出ます';
-  $('#err').style.display='none';
-  $('#ok').style.display='none';
-  setBar(0);
-}
-
-/* ========= ファイル受け取り ========= */
-function handleFile(file){
-  currentFile = file;
-  $('#fileInfo').textContent = `${file.name} を受け取りました（${humanSize(file.size)}）`;
-  $('#dropMsg').textContent = '準備OK。「自動解析」を押してください。';
-}
-
-/* ========= 代表フレーム抽出（HTML5 Video + Canvas） ========= */
-async function extractFrames(file, count, onProgress){
-  const url = URL.createObjectURL(file);
-  const video = document.createElement('video');
-  video.src = url;
-  video.muted = true; video.playsInline = true; video.preload = 'metadata';
-
-  await new Promise((res,rej)=>{
-    video.onloadedmetadata = ()=>res();
-    video.onerror = e=> rej(new Error('動画メタデータの読み込みに失敗'));
-  });
-
-  const w = Math.min(1280, video.videoWidth || 1280);
-  const h = Math.round(w * (video.videoHeight? video.videoHeight/video.videoWidth : 9/16));
-  const canvas = document.createElement('canvas'); canvas.width=w; canvas.height=h;
-  const ctx = canvas.getContext('2d', { willReadFrequently:true });
-
-  const frames = [];
-  const duration = Math.max(1, video.duration || 1);
-  const steps = count+2; // 両端を避ける
-  for(let i=1;i<=count;i++){
-    const t = duration * (i/steps);
-    await seekTo(video, t);
-    ctx.drawImage(video,0,0,w,h);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
-    frames.push(dataUrl);
-    onProgress?.(i/count);
-    // サムネ表示
-    const img = new Image(); img.src = dataUrl;
-    $('#frames').append(img);
-    await sleep(10);
-  }
-  URL.revokeObjectURL(url);
-  return frames;
-}
-function seekTo(video, t){
-  return new Promise((res,rej)=>{
-    const onSeeked = ()=>{ video.removeEventListener('seeked', onSeeked); res(); }
-    video.addEventListener('seeked', onSeeked);
-    try{
-      video.currentTime = Math.min(Math.max(0.05, t), Math.max(0.06, video.duration-0.06));
-    }catch(e){ rej(e); }
-  });
-}
-
-/* ========= 音声をWAV(16kHz/mono)へ（WebAudio） =========
-   標準: 90秒まで / 高精度: 600秒までに制限（ブラウザ負荷対策） */
-async function extractAudioWav(file, limitSec=90, outRate=16000){
-  const arrayBuf = await file.arrayBuffer();
-  // まずデコード
-  const actx = new (window.AudioContext || window.webkitAudioContext)();
-  const srcBuf = await actx.decodeAudioData(arrayBuf);
-  const dur = Math.min(limitSec, srcBuf.duration);
-  // トリム用バッファ
-  const trimLen = Math.min(srcBuf.length, Math.floor(dur * srcBuf.sampleRate));
-  const trimBuf = actx.createBuffer(1, trimLen, srcBuf.sampleRate);
-  trimBuf.copyToChannel(srcBuf.getChannelData(0).slice(0, trimLen), 0, 0);
-  // リサンプリング
-  const octx = new OfflineAudioContext(1, Math.ceil(outRate*dur), outRate);
-  const src = octx.createBufferSource();
-  src.buffer = trimBuf; src.connect(octx.destination); src.start(0);
-  const rendered = await octx.startRendering();
-  // PCM16 WAV 生成
-  const wav = pcm16Wav(rendered.getChannelData(0), outRate);
-  return new Blob([wav], {type:'audio/wav'});
-}
-// PCM float32 -> WAV(PCM16)
-function pcm16Wav(float32Array, sampleRate){
-  const bufferLength = float32Array.length;
-  const bytesPerSample = 2;
-  const blockAlign = 1 * bytesPerSample;
-  const byteRate = sampleRate * blockAlign;
-  const dataSize = bufferLength * bytesPerSample;
-  const headerSize = 44;
-  const totalSize = headerSize + dataSize;
-  const buf = new ArrayBuffer(totalSize);
-  const view = new DataView(buf);
-  // RIFF/WAVE Header
-  writeStr(view, 0, 'RIFF');
-  view.setUint32(4, totalSize - 8, true);
-  writeStr(view, 8, 'WAVE');
-  writeStr(view, 12, 'fmt ');
-  view.setUint32(16, 16, true); // PCM
-  view.setUint16(20, 1, true);  // PCM
-  view.setUint16(22, 1, true);  // mono
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, byteRate, true);
-  view.setUint16(32, blockAlign, true);
-  view.setUint16(34, 16, true); // bits
-  writeStr(view, 36, 'data');
-  view.setUint32(40, dataSize, true);
-  // PCM
-  let offset = 44;
-  for (let i=0; i<bufferLength; i++){
-    let s = Math.max(-1, Math.min(1, float32Array[i]));
-    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-    offset += 2;
-  }
-  return buf;
-}
-function writeStr(view, offset, str){
-  for(let i=0;i<str.length;i++) view.setUint8(offset+i, str.charCodeAt(i));
-}
-
-/* ========= OpenAI呼び出し ========= */
-async function transcribeWhisper(blob, apiKey){
-  const fd = new FormData();
-  fd.append('file', blob, 'audio.wav');
-  fd.append('model', 'whisper-1');
-  fd.append('response_format', 'text');
-  const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-    method:'POST',
-    headers:{ 'Authorization':'Bearer '+apiKey },
-    body: fd
-  });
-  if(!res.ok){ throw new Error('Whisperエラー: '+res.status+' '+await res.text()); }
-  return await res.text();
-}
-
-async function summarizeWithVision({frames, transcript, lang, apiKey}){
-  const sys = `あなたは迅速で正確なマルチモーダル要約アシスタントです。\
-視覚（フレーム）${transcript? 'と音声書き起こし':''}から、冗長さを避けて本質を抽出してください。\
-出力言語は必ず「${lang}」。形式: 
-- 3行の要旨
-- 箇条書きの詳細(5〜10項目)
-- 重要シーンのタイムライン(推定時刻でOK)
-- 利用者向けの次のアクション（1〜3）`;
-
-  const userText = `${frames.length}枚の代表フレーム${transcript? 'と短縮トランスクリプト':''}を渡します。\
-映像/スライド/字幕/人物/UI/商品などを認識して要約してください。`;
-
-  const content = [{type:'text', text:userText}];
-  frames.forEach(u => content.push({type:'image_url', image_url:u}));
-  if (transcript){
-    // トークン節約のため適度に丸めて投入
-    const shortTr = transcript.slice(0, 12000);
-    content.push({type:'text', text:'音声書き起こし（短縮）:\n'+shortTr});
-  }
-
-  if(!apiKey){
-    // ローカル簡易（GPTなし）: 画像のみのヒューリスティック
-    return localHeuristicSummary(frames, lang, !!transcript);
-  }
-
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method:'POST',
-    headers:{
-      'Authorization':'Bearer '+apiKey,
-      'Content-Type':'application/json'
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      temperature: 0.2,
-      messages:[
-        {role:'system', content: sys},
-        {role:'user', content}
-      ]
-    })
-  });
-  if(!res.ok){ throw new Error('GPT要約エラー: '+res.status+' '+await res.text()); }
-  const data = await res.json();
-  return data.choices?.[0]?.message?.content?.trim() || '(要約なし)';
-}
-
-/* 簡易ローカル要約（GPTキーなしの保険） */
-function localHeuristicSummary(frames, lang, hadTranscript){
-  const L = {
-    '日本語': {
-      tl:'推定タイムライン',
-      sum:'要旨',
-      det:'詳細',
-      act:'次のアクション',
-      text:`（ローカル簡易要約）画像${frames.length}枚${hadTranscript?'＋音声要素':''}から概要を推定。`
-    },
-    'English': {
-      tl:'Estimated Timeline',
-      sum:'Summary',
-      det:'Details',
-      act:'Next actions',
-      text:`(Local heuristic) Estimated from ${frames.length} key frames${hadTranscript?' + audio':''}.`
+  <meta charset="UTF-8" />
+  <title>人生偏差値ラボ（高校生版ミニツール）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --bg-card: #111827;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.15);
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --danger: #f97373;
+      --border: #1f2937;
+      --radius-lg: 16px;
+      --radius-md: 10px;
+      --shadow-soft: 0 20px 40px rgba(15, 23, 42, 0.45);
     }
-  }[lang] || {
-    tl:'Timeline',sum:'Summary',det:'Details',act:'Next actions',
-    text:`Heuristic summary from ${frames.length} frames.`
-  };
-  return `- ${L.sum}\n${L.text}\n\n- ${L.det}\n• スライド/字幕/画面要素を中心に内容を抽出\n• 重要な場面をフレーム位置から推定\n\n- ${L.tl}\n• 00:00 導入\n• 途中に要点\n• 最後に結論/CTA\n\n- ${L.act}\n• 詳細要約が必要なら「標準/高精度」で再解析\n• 長尺は冒頭90秒だけでASR→全体要約へ`
-}
 
-/* ========= メインフロー ========= */
-$('#autoBtn').onclick = async () => {
-  $('#err').style.display='none'; $('#ok').style.display='none';
-  if(!currentFile){ showErr('先に動画ファイルを選んでください。'); return; }
+    * {
+      box-sizing: border-box;
+    }
 
-  $('#frames').innerHTML='';
-  $('#summary').textContent='解析中...';
-  $('#autoBtn').disabled = true; setBar(4);
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      background: radial-gradient(circle at top, #1f2937 0, #020617 55%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+    }
 
-  try{
-    const mode = document.querySelector('input[name="mode"]:checked').value;
-    const lang = $('#lang').value;
-    const apiKey = $('#apiKey').value.trim();
+    .page {
+      width: 100%;
+      max-width: 960px;
+      padding: 24px 16px 40px;
+    }
 
-    // 1) フレーム数・ASR秒数を決定
-    const plan = { fast:{frames:12, asr:false, sec:0},
-                   std :{frames:24, asr:true,  sec:90},
-                   hq  :{frames:48, asr:true,  sec:600} }[mode];
+    header {
+      margin-bottom: 24px;
+    }
 
-    // 2) 代表フレーム抽出
-    $('#ok').style.display='block'; $('#ok').textContent='フレーム抽出を開始…';
-    const frames = await extractFrames(currentFile, plan.frames, p=> setBar(5 + Math.floor(p*45)));
-    $('#ok').textContent = `フレーム抽出完了（${frames.length}枚）`;
+    .title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 6px;
+    }
 
-    // 3) 音声 → Whisper（必要な時）
-    let transcript = '';
-    if(plan.asr){
-      setBar(52);
-      $('#ok').textContent = '音声を抽出してWhisperへ…';
-      const wav = await extractAudioWav(currentFile, plan.sec, 16000);
-      // 25MB超えに注意（90秒/mono/16kなら大抵OK）
-      if(wav.size > 24*1024*1024){
-        $('#ok').textContent = '音声が大きすぎるため、60秒に短縮して再抽出…';
-        const wav2 = await extractAudioWav(currentFile, 60, 16000);
-        transcript = apiKey ? await transcribeWhisper(wav2, apiKey) : '';
-      }else{
-        transcript = apiKey ? await transcribeWhisper(wav, apiKey) : '';
+    .badge {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: var(--muted);
+      max-width: 36rem;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.6fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
       }
     }
 
-    // 4) GPTで要約（またはローカル簡易）
-    setBar(72);
-    $('#ok').textContent = (apiKey? 'GPTに要約指示…' : 'ローカル簡易要約を生成…');
-    const summary = await summarizeWithVision({frames, transcript, lang, apiKey});
-    $('#summary').textContent = summary;
-    setBar(100);
-    $('#ok').textContent = '完了';
-  }catch(e){
-    console.error(e);
-    showErr(e.message || String(e));
-  }finally{
-    $('#autoBtn').disabled = false;
-  }
-}
+    .card {
+      background: linear-gradient(145deg, #020617, #020617, #020617);
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(148, 163, 184, 0.08);
+      padding: 18px 18px 20px;
+      box-shadow: var(--shadow-soft);
+      position: relative;
+      overflow: hidden;
+    }
 
-function showErr(msg){
-  const box = $('#err'); box.textContent = msg; box.style.display='block';
-  $('#summary').textContent = 'エラーが発生しました。設定とネットワークをご確認ください。';
-}
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: -120px;
+      background: radial-gradient(
+        circle at top left,
+        rgba(56, 189, 248, 0.18),
+        transparent 60%
+      );
+      opacity: 0.5;
+      pointer-events: none;
+    }
 
-$('#saveTxt').onclick = () => {
-  const blob = new Blob([$('#summary').textContent||''], {type:'text/plain;charset=utf-8'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'video_summary.txt';
-  a.click();
-  URL.revokeObjectURL(a.href);
-};
+    .card-content {
+      position: relative;
+      z-index: 1;
+    }
 
-/* ========= 起動メッセージ ========= */
-window.addEventListener('load', ()=>{
-  const warn = 'セキュリティ注意：APIキーは端末内に保存されます。共有端末では使用後に「リセット」してください。';
-  $('#ok').style.display='block'; $('#ok').textContent = warn;
-});
-</script>
+    .card h2 {
+      font-size: 1.1rem;
+      margin: 0 0 12px;
+    }
+
+    .card p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .field-group {
+      margin-top: 14px;
+    }
+
+    .field-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pill-toggle {
+      display: inline-flex;
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: 999px;
+      padding: 3px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+
+    .pill-toggle button {
+      border: none;
+      padding: 4px 12px;
+      font-size: 0.8rem;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .pill-toggle button.active {
+      background: linear-gradient(135deg, #38bdf8, #22c55e);
+      color: #020617;
+      font-weight: 600;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .value-badge {
+      min-width: 58px;
+      text-align: center;
+      padding: 4px 8px;
+      font-size: 0.8rem;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.5);
+    }
+
+    .hint {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .results-header-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .results-header-sub {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .scenario-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    @media (max-width: 768px) {
+      .scenario-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .scenario-card {
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: radial-gradient(
+          circle at top,
+          rgba(56, 189, 248, 0.12),
+          transparent 60%
+        ),
+        rgba(15, 23, 42, 0.96);
+      padding: 10px 10px 12px;
+      font-size: 0.82rem;
+    }
+
+    .scenario-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .scenario-tag {
+      font-size: 0.7rem;
+      padding: 1px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      color: var(--muted);
+    }
+
+    .scenario-tag.primary {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 3px;
+    }
+
+    .stat-label {
+      color: var(--muted);
+    }
+
+    .stat-value {
+      font-weight: 600;
+    }
+
+    .stat-value.highlight {
+      color: var(--accent);
+    }
+
+    .stat-value.danger {
+      color: var(--danger);
+    }
+
+    .small-note {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    .delta-text {
+      font-size: 0.8rem;
+      margin-top: 6px;
+    }
+
+    .delta-text strong {
+      color: var(--accent);
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .chip {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      color: var(--muted);
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .chip.strong {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    footer {
+      margin-top: 16px;
+      font-size: 0.7rem;
+      color: var(--muted);
+      max-width: 40rem;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <div class="badge">prototype · single page</div>
+      <div class="title">
+        人生偏差値ラボ
+        <span style="font-size:0.8rem; color:#9ca3af;">
+          – 高校生版ミニシミュレーター
+        </span>
+      </div>
+      <p class="subtitle">
+        「今の偏差値のまま進む」のと「偏差値をあと5〜10上げてから進む」のでは、
+        30歳前後の年収レンジがどれくらい変わりうるのかをざっくり可視化する試作ツールです。
+        実際の人生はもっと複雑ですが、「今の勉強＝未来の選択肢の広さ」という感覚を掴むための方位磁石として使ってください。
+      </p>
+    </header>
+
+    <section class="layout">
+      <!-- 左：入力 -->
+      <section class="card">
+        <div class="card-content">
+          <h2>1. 今の自分をセットする</h2>
+          <p>
+            今の模試偏差値と、ざっくりの進路イメージ（文系寄り・理系寄り）を入れてください。
+            ここでは「全国の同年代」を前提にしたざっくりモデルで計算します。
+          </p>
+
+          <div class="field-group">
+            <div class="field-label">文系 / 理系のイメージ</div>
+            <div class="pill-toggle" id="trackToggle">
+              <button type="button" data-track="arts" class="active">文系寄り</button>
+              <button type="button" data-track="science">理系寄り</button>
+            </div>
+            <div class="hint">
+              どちらか迷う場合は、<strong>「理系教科（数学・物理など）で勝負する気があるかどうか」</strong>で選んでOKです。
+            </div>
+          </div>
+
+          <div class="field-group">
+            <div class="field-label">今の模試偏差値（おおよそ）</div>
+            <div class="slider-row">
+              <input
+                id="currentHen"
+                type="range"
+                min="40"
+                max="70"
+                step="1"
+                value="50"
+              />
+              <div class="value-badge">
+                <span id="currentHenValue">50</span>
+              </div>
+            </div>
+            <div class="hint">
+              実際の模試が 47〜53 あたりなら「50」、 52〜58 あたりなら「55」…のようにざっくりで大丈夫です。
+            </div>
+          </div>
+
+          <div class="field-group">
+            <div class="field-label">想定する「頑張り幅」</div>
+            <p class="hint">
+              このプロトタイプでは、<strong>今の偏差値</strong>・<strong>＋5</strong>・<strong>＋10</strong> の
+              3パターンを自動で比較します。実際には「分野選び」も同じくらい重要ですが、
+              まずは「偏差値だけ」を動かした場合のインパクトをイメージするためのモデルです。
+            </p>
+          </div>
+
+          <div class="field-group">
+            <div class="field-label">この画面でわかること</div>
+            <div class="chip-row">
+              <div class="chip strong">30歳前後の年収レンジの差</div>
+              <div class="chip">生涯ベースのざっくり差額（万円）</div>
+              <div class="chip">偏差値アップで広がる選択肢イメージ</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 右：結果 -->
+      <section class="card">
+        <div class="card-content" id="results">
+          <div class="results-header">
+            <div>
+              <div class="results-header-title">
+                2. 30歳あたりの年収イメージ（試算）
+              </div>
+              <div class="results-header-sub">
+                偏差値の違いによる「30歳時点の年収レンジ」と「ざっくり生涯差」を比較表示します。
+              </div>
+            </div>
+          </div>
+
+          <div class="scenario-grid" id="scenarioGrid">
+            <!-- JSで差し込む -->
+          </div>
+
+          <div class="small-note">
+            ※ 金額はすべて<strong>概算のモデル値</strong>です。実際の進路・分野選択・行動次第で大きく変わります。
+            「偏差値に意味はない／偏差値がすべて」どちらでもなく、<strong>「選択肢を広げるための1つのレバー」</strong>として理解してください。
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <footer>
+      このページは「人生偏差値アプリ」構想の
+      <strong>高校生向けミニプロトタイプ</strong>です。将来的には、ここに
+      <strong>学部・職種・会社・家計（DSCR）・副業 / YouTuber といった要素</strong>を追加して、
+      「将来欲しい年収・就職力から逆算して進路を設計する」フル版へ拡張していく想定です。
+    </footer>
+  </main>
+
+  <script>
+    // ---- モデル部分（ざっくり試算ロジック） -----------------------------
+
+    // 偏差値 → 30歳時点の年収（中央値 & 上位20%）をざっくり推定する。
+    // 単位は「万円」。かなりラフなモデル。
+    function estimateIncomeAt30(hen, track) {
+      // モデル用のアンカー値（偏差値 vs 年収/万円）
+      // 文系寄りのベース（理系は後で倍率で調整）
+      const anchorsMedian = {
+        45: 350,
+        50: 400,
+        55: 500,
+        60: 600,
+        65: 700
+      };
+
+      const anchorsP80 = {
+        45: 450,
+        50: 550,
+        55: 650,
+        60: 800,
+        65: 900
+      };
+
+      function interp(obj, x) {
+        const keys = Object.keys(obj)
+          .map(Number)
+          .sort((a, b) => a - b);
+        if (x <= keys[0]) return obj[keys[0]];
+        if (x >= keys[keys.length - 1]) return obj[keys[keys.length - 1]];
+        for (let i = 0; i < keys.length - 1; i++) {
+          const k1 = keys[i];
+          const k2 = keys[i + 1];
+          if (x >= k1 && x <= k2) {
+            const t = (x - k1) / (k2 - k1);
+            return obj[k1] + (obj[k2] - obj[k1]) * t;
+          }
+        }
+        return obj[keys[0]];
+      }
+
+      const baseMedian = interp(anchorsMedian, hen);
+      const baseP80 = interp(anchorsP80, hen);
+
+      // 理系寄りのときは「専門職・技術職への接続」が強い想定で少しブースト
+      const scienceBoost = track === "science" ? 1.1 : 1.0;
+
+      return {
+        median: Math.round(baseMedian * scienceBoost),
+        p80: Math.round(baseP80 * scienceBoost)
+      };
+    }
+
+    // 生涯差のざっくりモデル：30歳時点の年収差 × 35年。
+    function estimateLifetimeDiff(medianBase, medianHigher) {
+      const diffPerYear = medianHigher - medianBase; // 万円
+      const years = 35; // 適当な就労年数モデル
+      return diffPerYear > 0 ? diffPerYear * years : 0;
+    }
+
+    // ---- UI 更新ロジック ---------------------------------------------------
+
+    function formatYenMan(man) {
+      return man.toLocaleString("ja-JP") + "万円";
+    }
+
+    function updateScenarios() {
+      const trackButton = document.querySelector(
+        ".pill-toggle button.active"
+      );
+      const track = trackButton ? trackButton.dataset.track : "arts";
+
+      const currentHen = Number(
+        document.getElementById("currentHen").value
+      );
+
+      const scenarioGrid = document.getElementById("scenarioGrid");
+      scenarioGrid.innerHTML = "";
+
+      // シナリオ：今のまま / +5 / +10（上限65）
+      const scenarios = [
+        { label: "今のまま", delta: 0, primary: true },
+        { label: "偏差値を＋5", delta: 5, primary: false },
+        { label: "偏差値を＋10", delta: 10, primary: false }
+      ];
+
+      // ベースの結果（「今のまま」を基準に生涯差を出す）
+      const baseHen = currentHen;
+      const baseIncome = estimateIncomeAt30(baseHen, track);
+      const cards = [];
+
+      scenarios.forEach((sc) => {
+        let targetHen = baseHen + sc.delta;
+        if (targetHen > 65) targetHen = 65; // モデル上の上限
+
+        const income = estimateIncomeAt30(targetHen, track);
+        const lifetimeDiff =
+          sc.delta === 0
+            ? 0
+            : estimateLifetimeDiff(baseIncome.median, income.median);
+
+        cards.push({
+          title: sc.label,
+          hen: targetHen,
+          median: income.median,
+          p80: income.p80,
+          lifetimeDiff,
+          primary: sc.primary
+        });
+      });
+
+      cards.forEach((c, idx) => {
+        const div = document.createElement("div");
+        div.className = "scenario-card";
+
+        const isBase = idx === 0;
+        const tagClass = c.primary ? "scenario-tag primary" : "scenario-tag";
+
+        div.innerHTML = `
+          <div class="scenario-title">
+            <span>${c.title}</span>
+            <span class="${tagClass}">
+              偏差値 ${c.hen}
+            </span>
+          </div>
+          <div class="stat-row" style="margin-top:6px;">
+            <div class="stat-label">30歳あたりの年収（中央値）</div>
+            <div class="stat-value ${
+              isBase ? "" : "highlight"
+            }">${formatYenMan(c.median)}</div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-label">上位20％ゾーン</div>
+            <div class="stat-value">${formatYenMan(c.p80)}</div>
+          </div>
+          ${
+            isBase
+              ? `<div class="delta-text">
+                    このシナリオが<strong>「今のまま」</strong>進んだ場合のざっくりイメージです。
+                  </div>`
+              : c.lifetimeDiff > 0
+              ? `<div class="delta-text">
+                    「今のまま」と比べて、<strong>生涯ベースで約 ${formatYenMan(
+                      c.lifetimeDiff
+                    )}</strong> 分だけ
+                    「稼げる可能性のあるゾーン」が広がるイメージです（超ざっくり試算）。
+                 </div>`
+              : `<div class="delta-text">
+                    このモデルでは「今のまま」と大きな差は出ていません。
+                 </div>`
+          }
+        `;
+
+        scenarioGrid.appendChild(div);
+      });
+    }
+
+    // ---- イベント設定 ------------------------------------------------------
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const currentHenInput = document.getElementById("currentHen");
+      const currentHenValue = document.getElementById("currentHenValue");
+      const trackToggle = document.getElementById("trackToggle");
+
+      currentHenInput.addEventListener("input", () => {
+        currentHenValue.textContent = currentHenInput.value;
+        updateScenarios();
+      });
+
+      trackToggle.addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-track]");
+        if (!btn) return;
+        trackToggle
+          .querySelectorAll("button")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        updateScenarios();
+      });
+
+      // 初期表示
+      updateScenarios();
+    });
+  </script>
 </body>
 </html>
