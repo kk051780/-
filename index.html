@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>人生偏差値ラボ（高校生版ミニツール）</title>
+  <title>人生偏差値ラボ（v1・単一ページ版）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
@@ -41,7 +41,7 @@
     }
 
     header {
-      margin-bottom: 24px;
+      margin-bottom: 16px;
     }
 
     .title {
@@ -49,6 +49,7 @@
       font-weight: 700;
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
       gap: 0.6rem;
       margin-bottom: 6px;
     }
@@ -69,6 +70,36 @@
       max-width: 36rem;
     }
 
+    /* モードタブ */
+    .mode-tabs {
+      display: inline-flex;
+      margin-top: 14px;
+      padding: 3px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      gap: 2px;
+    }
+
+    .mode-tab {
+      border: none;
+      padding: 4px 14px;
+      font-size: 0.8rem;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .mode-tab.active {
+      background: linear-gradient(135deg, #38bdf8, #22c55e);
+      color: #020617;
+      font-weight: 600;
+    }
+
+    /* 共通レイアウト・カード */
     .layout {
       display: grid;
       grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.6fr);
@@ -130,12 +161,6 @@
       letter-spacing: 0.06em;
       color: var(--muted);
       margin-bottom: 4px;
-    }
-
-    .row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
     }
 
     .pill-toggle {
@@ -275,10 +300,6 @@
       color: var(--accent);
     }
 
-    .stat-value.danger {
-      color: var(--danger);
-    }
-
     .small-note {
       font-size: 0.7rem;
       color: var(--muted);
@@ -316,134 +337,251 @@
       color: var(--accent);
     }
 
+    .route-label {
+      font-size: 0.74rem;
+      margin-top: 6px;
+      color: var(--muted);
+    }
+
+    /* モード切り替え用 */
+    .mode-section {
+      margin-top: 12px;
+    }
+
+    .mode-section.hidden {
+      display: none;
+    }
+
     footer {
       margin-top: 16px;
       font-size: 0.7rem;
       color: var(--muted);
       max-width: 40rem;
     }
+
+    /* 新卒・転職モード用の軽いスタイル */
+    .placeholder-list {
+      margin-top: 10px;
+      padding-left: 18px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .placeholder-list li {
+      margin-bottom: 4px;
+    }
   </style>
 </head>
 <body>
   <main class="page">
     <header>
-      <div class="badge">prototype · single page</div>
+      <div class="badge">PROTOTYPE · SINGLE URL</div>
       <div class="title">
         人生偏差値ラボ
         <span style="font-size:0.8rem; color:#9ca3af;">
-          – 高校生版ミニシミュレーター
+          – 高校生 / 新卒 / 転職 向けミニシミュレーター v1
         </span>
       </div>
       <p class="subtitle">
-        「今の偏差値のまま進む」のと「偏差値をあと5〜10上げてから進む」のでは、
-        30歳前後の年収レンジがどれくらい変わりうるのかをざっくり可視化する試作ツールです。
-        実際の人生はもっと複雑ですが、「今の勉強＝未来の選択肢の広さ」という感覚を掴むための方位磁石として使ってください。
+        「今の偏差値・学歴・職歴」が、将来の年収レンジや選べるルートにどう効いてくるかをざっくり可視化する実験的ツールです。
+        このバージョンでは特に<strong>高校生モード</strong>を中心に、偏差値アップが進路と年収に与えるインパクトを見える化しています。
       </p>
+
+      <nav class="mode-tabs" id="modeTabs">
+        <button class="mode-tab active" data-mode="highschool">高校生モード</button>
+        <button class="mode-tab" data-mode="newgrad">新卒・就活モード</button>
+        <button class="mode-tab" data-mode="worker">転職・社会人モード</button>
+      </nav>
     </header>
 
-    <section class="layout">
-      <!-- 左：入力 -->
-      <section class="card">
-        <div class="card-content">
-          <h2>1. 今の自分をセットする</h2>
-          <p>
-            今の模試偏差値と、ざっくりの進路イメージ（文系寄り・理系寄り）を入れてください。
-            ここでは「全国の同年代」を前提にしたざっくりモデルで計算します。
-          </p>
-
-          <div class="field-group">
-            <div class="field-label">文系 / 理系のイメージ</div>
-            <div class="pill-toggle" id="trackToggle">
-              <button type="button" data-track="arts" class="active">文系寄り</button>
-              <button type="button" data-track="science">理系寄り</button>
-            </div>
-            <div class="hint">
-              どちらか迷う場合は、<strong>「理系教科（数学・物理など）で勝負する気があるかどうか」</strong>で選んでOKです。
-            </div>
-          </div>
-
-          <div class="field-group">
-            <div class="field-label">今の模試偏差値（おおよそ）</div>
-            <div class="slider-row">
-              <input
-                id="currentHen"
-                type="range"
-                min="40"
-                max="70"
-                step="1"
-                value="50"
-              />
-              <div class="value-badge">
-                <span id="currentHenValue">50</span>
-              </div>
-            </div>
-            <div class="hint">
-              実際の模試が 47〜53 あたりなら「50」、 52〜58 あたりなら「55」…のようにざっくりで大丈夫です。
-            </div>
-          </div>
-
-          <div class="field-group">
-            <div class="field-label">想定する「頑張り幅」</div>
-            <p class="hint">
-              このプロトタイプでは、<strong>今の偏差値</strong>・<strong>＋5</strong>・<strong>＋10</strong> の
-              3パターンを自動で比較します。実際には「分野選び」も同じくらい重要ですが、
-              まずは「偏差値だけ」を動かした場合のインパクトをイメージするためのモデルです。
+    <!-- ▼▼ 高校生モード ▼▼ -->
+    <section id="mode-highschool" class="mode-section">
+      <section class="layout">
+        <!-- 左：入力 -->
+        <section class="card">
+          <div class="card-content">
+            <h2>1. 今の自分をセットする（高校生）</h2>
+            <p>
+              今の模試偏差値と、ざっくりの進路イメージ（文系寄り・理系寄り）を入れてください。
+              ここでは「全国の同年代」を前提にしたざっくりモデルで計算します。
             </p>
-          </div>
 
-          <div class="field-group">
-            <div class="field-label">この画面でわかること</div>
-            <div class="chip-row">
-              <div class="chip strong">30歳前後の年収レンジの差</div>
-              <div class="chip">生涯ベースのざっくり差額（万円）</div>
-              <div class="chip">偏差値アップで広がる選択肢イメージ</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 右：結果 -->
-      <section class="card">
-        <div class="card-content" id="results">
-          <div class="results-header">
-            <div>
-              <div class="results-header-title">
-                2. 30歳あたりの年収イメージ（試算）
+            <div class="field-group">
+              <div class="field-label">文系 / 理系のイメージ</div>
+              <div class="pill-toggle" id="hs-trackToggle">
+                <button type="button" data-track="arts" class="active">文系寄り</button>
+                <button type="button" data-track="science">理系寄り</button>
               </div>
-              <div class="results-header-sub">
-                偏差値の違いによる「30歳時点の年収レンジ」と「ざっくり生涯差」を比較表示します。
+              <div class="hint">
+                どちらか迷う場合は、<strong>「理系教科（数学・物理など）で勝負する気があるかどうか」</strong>で選んでOKです。
               </div>
             </div>
-          </div>
 
-          <div class="scenario-grid" id="scenarioGrid">
-            <!-- JSで差し込む -->
-          </div>
+            <div class="field-group">
+              <div class="field-label">今の模試偏差値（おおよそ）</div>
+              <div class="slider-row">
+                <input
+                  id="hs-currentHen"
+                  type="range"
+                  min="40"
+                  max="70"
+                  step="1"
+                  value="50"
+                />
+                <div class="value-badge">
+                  <span id="hs-currentHenValue">50</span>
+                </div>
+              </div>
+              <div class="hint">
+                実際の模試が 47〜53 あたりなら「50」、 52〜58 あたりなら「55」…のようにざっくりで大丈夫です。
+              </div>
+            </div>
 
-          <div class="small-note">
-            ※ 金額はすべて<strong>概算のモデル値</strong>です。実際の進路・分野選択・行動次第で大きく変わります。
-            「偏差値に意味はない／偏差値がすべて」どちらでもなく、<strong>「選択肢を広げるための1つのレバー」</strong>として理解してください。
+            <div class="field-group">
+              <div class="field-label">この画面でわかること</div>
+              <div class="chip-row">
+                <div class="chip strong">30歳前後の年収レンジの差</div>
+                <div class="chip">生涯ベースのざっくり差額（万円）</div>
+                <div class="chip">偏差値アップで変わる進路ルートのイメージ</div>
+              </div>
+            </div>
           </div>
-        </div>
+        </section>
+
+        <!-- 右：結果 -->
+        <section class="card">
+          <div class="card-content">
+            <div class="results-header">
+              <div>
+                <div class="results-header-title">
+                  2. 30歳あたりの年収 &amp; 進路イメージ（試算）
+                </div>
+                <div class="results-header-sub">
+                  偏差値の違いによる「30歳時点の年収レンジ」と「代表的な進路ルート」を比較表示します。
+                </div>
+              </div>
+            </div>
+
+            <div class="scenario-grid" id="hs-scenarioGrid">
+              <!-- JSで差し込み -->
+            </div>
+
+            <div class="small-note">
+              ※ 金額・進路ルートはすべて<strong>概算のモデル値</strong>です。
+              実際の人生は、分野選び・行動・タイミング・運などで大きく変わります。
+              「偏差値さえ上げれば勝ち」でも「偏差値に意味はない」でもなく、
+              <strong>「偏差値は、選べるルートを増やすための1つのレバー」</strong>として捉えてください。
+            </div>
+          </div>
+        </section>
       </section>
     </section>
+    <!-- ▲▲ 高校生モード ▲▲ -->
+
+    <!-- ▼▼ 新卒モード（v1はプレースホルダ） ▼▼ -->
+    <section id="mode-newgrad" class="mode-section hidden">
+      <section class="layout">
+        <section class="card">
+          <div class="card-content">
+            <h2>1. プロフィール（新卒・就活）</h2>
+            <p>
+              ここでは、大学・学部・大学院の有無・インターン経験などから
+              <strong>「就職力偏差値（新卒版）」</strong>を出す予定です。
+              v1 ではまだ設計段階のため、入力欄はダミーです。
+            </p>
+            <div class="field-group">
+              <div class="field-label">今後ここに入る想定の情報</div>
+              <ul class="placeholder-list">
+                <li>大学名・学部学科・大学院の有無</li>
+                <li>GPA / 成績帯・インターン経験・ゼミ・部活</li>
+                <li>取得資格・TOEIC など</li>
+                <li>希望する職種クラスター（メーカー技術職・IT・コンサル など）</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-content">
+            <h2>2. 出力イメージ（新卒）</h2>
+            <p>
+              将来のバージョンでは、ここに
+              <strong>就職力偏差値・職種クラスターごとのフィット度・想定年収レンジ</strong>などが表示されます。
+            </p>
+            <div class="field-group">
+              <div class="field-label">例：表示したい内容</div>
+              <ul class="placeholder-list">
+                <li>統合就職力偏差値（全国同年代との比較）</li>
+                <li>学校就職力偏差値 / 個人就職力偏差値 の内訳</li>
+                <li>おすすめ職種クラスターと、その30歳年収レンジ</li>
+                <li>「もう少し偏差値 or スキルを上げた場合」の上振れシナリオ</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </section>
+    </section>
+    <!-- ▲▲ 新卒モード ▲▲ -->
+
+    <!-- ▼▼ 転職モード（v1はプレースホルダ） ▼▼ -->
+    <section id="mode-worker" class="mode-section hidden">
+      <section class="layout">
+        <section class="card">
+          <div class="card-content">
+            <h2>1. プロフィール（転職・社会人）</h2>
+            <p>
+              転職モードでは、職歴・スキル・年収・家族構成などから
+              <strong>「転職市場でのポジション（就職力偏差値・年収レンジ）」</strong>を計算する予定です。
+            </p>
+            <div class="field-group">
+              <div class="field-label">今後想定している入力項目</div>
+              <ul class="placeholder-list">
+                <li>年齢・家族構成・居住エリア</li>
+                <li>職歴タイムライン（業界・会社規模・役職・年数）</li>
+                <li>スキルセット（技術・マネジメント・語学など）</li>
+                <li>希望条件（年収アップ / WLB / 地域 / リモート など）</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-content">
+            <h2>2. 出力イメージ（転職）</h2>
+            <p>
+              将来のバージョンでは、ここに
+              <strong>職種ごとの転職難易度・想定オファー年収レンジ・家計DSCRとのバランス</strong>などが表示されます。
+            </p>
+            <div class="field-group">
+              <div class="field-label">例：表示したい内容</div>
+              <ul class="placeholder-list">
+                <li>現在ポジションの就職力偏差値（職種別）</li>
+                <li>候補職種・業界ごとの転職難易度と年収レンジ</li>
+                <li>家計DSCR・FI年数を踏まえた「攻め/守りバランス」</li>
+                <li>YouTuber/副業を含む「職種ポートフォリオ」シミュレーション</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </section>
+    </section>
+    <!-- ▲▲ 転職モード ▲▲ -->
 
     <footer>
       このページは「人生偏差値アプリ」構想の
-      <strong>高校生向けミニプロトタイプ</strong>です。将来的には、ここに
-      <strong>学部・職種・会社・家計（DSCR）・副業 / YouTuber といった要素</strong>を追加して、
-      「将来欲しい年収・就職力から逆算して進路を設計する」フル版へ拡張していく想定です。
+      <strong>単一URL版SSOTプロトタイプ v1</strong>です。
+      今後は同じ URL 上に、ここで示した新卒モード・転職モード・家計（DSCR）・
+      YouTuber/副業ルート・企業データ（ミニ四季報）などを段階的に実装していく想定です。
     </footer>
   </main>
 
   <script>
-    // ---- モデル部分（ざっくり試算ロジック） -----------------------------
+    // ============================================================
+    // 高校生モード用：モデル & ロジック
+    // ============================================================
 
-    // 偏差値 → 30歳時点の年収（中央値 & 上位20%）をざっくり推定する。
-    // 単位は「万円」。かなりラフなモデル。
-    function estimateIncomeAt30(hen, track) {
-      // モデル用のアンカー値（偏差値 vs 年収/万円）
-      // 文系寄りのベース（理系は後で倍率で調整）
+    // 偏差値 → 30歳時点の年収（中央値 & 上位20%）ざっくり推定
+    function hsEstimateIncomeAt30(hen, track) {
       const anchorsMedian = {
         45: 350,
         50: 400,
@@ -489,53 +627,124 @@
       };
     }
 
-    // 生涯差のざっくりモデル：30歳時点の年収差 × 35年。
-    function estimateLifetimeDiff(medianBase, medianHigher) {
+    // 生涯差のざっくりモデル：30歳時点の年収差 × 35年
+    function hsEstimateLifetimeDiff(medianBase, medianHigher) {
       const diffPerYear = medianHigher - medianBase; // 万円
-      const years = 35; // 適当な就労年数モデル
+      const years = 35;
       return diffPerYear > 0 ? diffPerYear * years : 0;
     }
 
-    // ---- UI 更新ロジック ---------------------------------------------------
+    // 偏差値 & 文理 → 代表的な進路ルート（進学＋職種）のイメージ
+    function hsGetRouteInfo(track, hen) {
+      let routeLabel = "";
+      let studyExamples = [];
+      let jobExamples = [];
 
+      if (track === "arts") {
+        if (hen <= 47) {
+          routeLabel = "地方私立文系・専門文系を中心としたルート";
+          studyExamples = [
+            "地方私立大学 文学部・社会学部",
+            "短大・専門学校（保育・ビジネス系など）"
+          ];
+          jobExamples = ["地元企業の一般職・事務", "販売・サービス職 など"];
+        } else if (hen <= 52) {
+          routeLabel = "中堅私立 or 地方国公立文系ルート";
+          studyExamples = [
+            "地方国公立 大学 文系学部",
+            "首都圏中堅私大（経済・法・商など）"
+          ];
+          jobExamples = ["メーカー・金融・IT などの総合職", "自治体の一般行政職 など"];
+        } else if (hen <= 57) {
+          routeLabel = "首都圏中堅〜上位私大文系ルート";
+          studyExamples = [
+            "首都圏 私立（MARCH 相当）の経済・商・法学部",
+            "地方国公立 上位学部"
+          ];
+          jobExamples = [
+            "大手・準大手企業の総合職",
+            "専門職寄り（会計・人事・企画）など"
+          ];
+        } else if (hen <= 62) {
+          routeLabel = "上位国公立・難関私大文系ルート";
+          studyExamples = ["旧帝・一橋・神戸などの経済・法", "早慶 上位学部"];
+          jobExamples = [
+            "コンサル・金融・総合商社など高難度職",
+            "大企業の企画・戦略系ポジション"
+          ];
+        } else {
+          routeLabel = "最難関文系ルート";
+          studyExamples = ["東大文Ⅰ・文Ⅱクラス", "早慶最上位学部"];
+          jobExamples = ["トップレベル金融・戦略コンサル", "官僚・研究者など"];
+        }
+      } else {
+        // 理系
+        if (hen <= 47) {
+          routeLabel = "私立理系・専門学校理系ルート";
+          studyExamples = ["私立理工学部（地方〜中堅）", "専門学校（IT・医療技術など）"];
+          jobExamples = ["SE・プログラマー", "医療技師・臨床検査技師 など"];
+        } else if (hen <= 52) {
+          routeLabel = "地方国公立理系・中堅私立理系ルート";
+          studyExamples = ["地方国公立 工学部・理学部", "首都圏中堅私大全学部の理系"];
+          jobExamples = ["メーカー技術職（機械・電気）", "インフラ系エンジニア など"];
+        } else if (hen <= 57) {
+          routeLabel = "上位地方国公立・首都圏上位私大全学部理系ルート";
+          studyExamples = ["地方上位国公立 工学・情報系", "MARCH 上位理工・情報"];
+          jobExamples = ["大手メーカー技術職", "自社開発IT・SIer 上位層"];
+        } else if (hen <= 62) {
+          routeLabel = "難関国公立・難関私大理系ルート";
+          studyExamples = ["旧帝大工学部・情報系", "早慶 理工・情報・創造理工"];
+          jobExamples = ["完成車・重電・インフラの技術職", "上位IT・コンサル（技術寄り）"];
+        } else {
+          routeLabel = "トップクラス理系ルート";
+          studyExamples = ["東大・東工大・京大の工学・情報", "医学部医学科 など"];
+          jobExamples = ["研究開発の中核ポジション", "高収入専門職（医師など）"];
+        }
+      }
+
+      return { routeLabel, studyExamples, jobExamples };
+    }
+
+    // 表示用フォーマット
     function formatYenMan(man) {
       return man.toLocaleString("ja-JP") + "万円";
     }
 
-    function updateScenarios() {
+    // 高校生モード結果更新
+    function hsUpdateScenarios() {
       const trackButton = document.querySelector(
-        ".pill-toggle button.active"
+        "#hs-trackToggle button.active"
       );
       const track = trackButton ? trackButton.dataset.track : "arts";
 
       const currentHen = Number(
-        document.getElementById("currentHen").value
+        document.getElementById("hs-currentHen").value
       );
 
-      const scenarioGrid = document.getElementById("scenarioGrid");
+      const scenarioGrid = document.getElementById("hs-scenarioGrid");
       scenarioGrid.innerHTML = "";
 
-      // シナリオ：今のまま / +5 / +10（上限65）
       const scenarios = [
         { label: "今のまま", delta: 0, primary: true },
         { label: "偏差値を＋5", delta: 5, primary: false },
         { label: "偏差値を＋10", delta: 10, primary: false }
       ];
 
-      // ベースの結果（「今のまま」を基準に生涯差を出す）
       const baseHen = currentHen;
-      const baseIncome = estimateIncomeAt30(baseHen, track);
+      const baseIncome = hsEstimateIncomeAt30(baseHen, track);
       const cards = [];
 
       scenarios.forEach((sc) => {
         let targetHen = baseHen + sc.delta;
-        if (targetHen > 65) targetHen = 65; // モデル上の上限
+        if (targetHen > 65) targetHen = 65;
 
-        const income = estimateIncomeAt30(targetHen, track);
+        const income = hsEstimateIncomeAt30(targetHen, track);
         const lifetimeDiff =
           sc.delta === 0
             ? 0
-            : estimateLifetimeDiff(baseIncome.median, income.median);
+            : hsEstimateLifetimeDiff(baseIncome.median, income.median);
+
+        const routeInfo = hsGetRouteInfo(track, targetHen);
 
         cards.push({
           title: sc.label,
@@ -543,6 +752,7 @@
           median: income.median,
           p80: income.p80,
           lifetimeDiff,
+          routeInfo,
           primary: sc.primary
         });
       });
@@ -551,73 +761,4 @@
         const div = document.createElement("div");
         div.className = "scenario-card";
 
-        const isBase = idx === 0;
-        const tagClass = c.primary ? "scenario-tag primary" : "scenario-tag";
-
-        div.innerHTML = `
-          <div class="scenario-title">
-            <span>${c.title}</span>
-            <span class="${tagClass}">
-              偏差値 ${c.hen}
-            </span>
-          </div>
-          <div class="stat-row" style="margin-top:6px;">
-            <div class="stat-label">30歳あたりの年収（中央値）</div>
-            <div class="stat-value ${
-              isBase ? "" : "highlight"
-            }">${formatYenMan(c.median)}</div>
-          </div>
-          <div class="stat-row">
-            <div class="stat-label">上位20％ゾーン</div>
-            <div class="stat-value">${formatYenMan(c.p80)}</div>
-          </div>
-          ${
-            isBase
-              ? `<div class="delta-text">
-                    このシナリオが<strong>「今のまま」</strong>進んだ場合のざっくりイメージです。
-                  </div>`
-              : c.lifetimeDiff > 0
-              ? `<div class="delta-text">
-                    「今のまま」と比べて、<strong>生涯ベースで約 ${formatYenMan(
-                      c.lifetimeDiff
-                    )}</strong> 分だけ
-                    「稼げる可能性のあるゾーン」が広がるイメージです（超ざっくり試算）。
-                 </div>`
-              : `<div class="delta-text">
-                    このモデルでは「今のまま」と大きな差は出ていません。
-                 </div>`
-          }
-        `;
-
-        scenarioGrid.appendChild(div);
-      });
-    }
-
-    // ---- イベント設定 ------------------------------------------------------
-
-    document.addEventListener("DOMContentLoaded", () => {
-      const currentHenInput = document.getElementById("currentHen");
-      const currentHenValue = document.getElementById("currentHenValue");
-      const trackToggle = document.getElementById("trackToggle");
-
-      currentHenInput.addEventListener("input", () => {
-        currentHenValue.textContent = currentHenInput.value;
-        updateScenarios();
-      });
-
-      trackToggle.addEventListener("click", (e) => {
-        const btn = e.target.closest("button[data-track]");
-        if (!btn) return;
-        trackToggle
-          .querySelectorAll("button")
-          .forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-        updateScenarios();
-      });
-
-      // 初期表示
-      updateScenarios();
-    });
-  </script>
-</body>
-</html>
+        const isBase
