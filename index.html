@@ -2,21 +2,22 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>人生偏差値ラボ（v1・単一ページ版）</title>
+  <title>人生偏差値ラボ – Prototype v1.2.1</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
       --bg: #0f172a;
-      --bg-card: #111827;
+      --bg-soft: #111827;
+      --card: #020617;
       --accent: #38bdf8;
       --accent-soft: rgba(56, 189, 248, 0.15);
+      --accent-strong: #0ea5e9;
       --text: #e5e7eb;
-      --muted: #9ca3af;
-      --danger: #f97373;
+      --text-soft: #9ca3af;
       --border: #1f2937;
-      --radius-lg: 16px;
-      --radius-md: 10px;
-      --shadow-soft: 0 20px 40px rgba(15, 23, 42, 0.45);
+      --danger: #f97373;
+      --success: #4ade80;
+      --muted-chip: #111827;
     }
 
     * {
@@ -25,712 +26,1724 @@
 
     body {
       margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: radial-gradient(circle at top, #1f2937 0, #020617 55%);
       color: var(--text);
       min-height: 100vh;
       display: flex;
-      justify-content: center;
-    }
-
-    .page {
-      width: 100%;
-      max-width: 960px;
-      padding: 24px 16px 40px;
+      flex-direction: column;
     }
 
     header {
-      margin-bottom: 16px;
+      padding: 16px 20px 8px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(to right, rgba(15,23,42,0.98), rgba(15,23,42,0.9));
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
 
-    .title {
-      font-size: 1.8rem;
-      font-weight: 700;
+    .header-main {
       display: flex;
       align-items: center;
+      justify-content: space-between;
+      gap: 12px;
       flex-wrap: wrap;
-      gap: 0.6rem;
-      margin-bottom: 6px;
     }
 
-    .badge {
-      font-size: 0.7rem;
+    .title-block h1 {
+      font-size: 20px;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .title-pill {
+      font-size: 12px;
       padding: 2px 8px;
       border-radius: 999px;
-      border: 1px solid var(--accent);
-      color: var(--accent);
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
+      border: 1px solid rgba(148,163,184,0.6);
+      color: var(--text-soft);
     }
 
     .subtitle {
-      font-size: 0.9rem;
-      color: var(--muted);
-      max-width: 36rem;
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: var(--text-soft);
     }
 
-    /* モードタブ */
-    .mode-tabs {
+    .chip-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    .chip {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.3);
+      background: rgba(15,23,42,0.7);
+      color: var(--text-soft);
       display: inline-flex;
-      margin-top: 14px;
-      padding: 3px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      gap: 2px;
+      align-items: center;
+      gap: 4px;
     }
 
-    .mode-tab {
-      border: none;
-      padding: 4px 14px;
-      font-size: 0.8rem;
+    .chip span {
+      font-size: 10px;
+      opacity: 0.7;
+    }
+
+    .tab-bar {
+      margin-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tab-btn {
       border-radius: 999px;
-      background: transparent;
-      color: var(--muted);
+      border: 1px solid var(--border);
+      background: rgba(15,23,42,0.8);
+      color: var(--text-soft);
+      font-size: 12px;
+      padding: 6px 10px;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       transition: all 0.15s ease;
-      white-space: nowrap;
     }
 
-    .mode-tab.active {
-      background: linear-gradient(135deg, #38bdf8, #22c55e);
-      color: #020617;
-      font-weight: 600;
+    .tab-btn span.icon {
+      font-size: 13px;
     }
 
-    /* 共通レイアウト・カード */
-    .layout {
+    .tab-btn.active {
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      border-color: rgba(56,189,248,0.5);
+      box-shadow: 0 0 0 1px rgba(56,189,248,0.3);
+    }
+
+    .tab-btn:hover {
+      border-color: rgba(148,163,184,0.8);
+    }
+
+    main {
+      flex: 1;
+      padding: 14px 16px 24px;
+      max-width: 1040px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .panel {
+      display: none;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .panel-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.6fr);
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr);
       gap: 16px;
     }
 
-    @media (max-width: 768px) {
-      .layout {
+    @media (max-width: 840px) {
+      .panel-grid {
         grid-template-columns: minmax(0, 1fr);
       }
     }
 
     .card {
-      background: linear-gradient(145deg, #020617, #020617, #020617);
-      border-radius: var(--radius-lg);
-      border: 1px solid rgba(148, 163, 184, 0.08);
-      padding: 18px 18px 20px;
-      box-shadow: var(--shadow-soft);
-      position: relative;
-      overflow: hidden;
+      background: radial-gradient(circle at top left, rgba(15,23,42,0.9), var(--card));
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 14px 14px 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.45);
     }
 
-    .card::before {
-      content: "";
-      position: absolute;
-      inset: -120px;
-      background: radial-gradient(
-        circle at top left,
-        rgba(56, 189, 248, 0.18),
-        transparent 60%
-      );
-      opacity: 0.5;
-      pointer-events: none;
+    .card-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
     }
 
-    .card-content {
-      position: relative;
-      z-index: 1;
-    }
-
-    .card h2 {
-      font-size: 1.1rem;
-      margin: 0 0 12px;
-    }
-
-    .card p {
-      margin: 0;
-      font-size: 0.9rem;
-      color: var(--muted);
-    }
-
-    .field-group {
-      margin-top: 14px;
-    }
-
-    .field-label {
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--muted);
-      margin-bottom: 4px;
-    }
-
-    .pill-toggle {
-      display: inline-flex;
-      background: rgba(15, 23, 42, 0.9);
-      border-radius: 999px;
-      padding: 3px;
-      border: 1px solid rgba(148, 163, 184, 0.3);
-    }
-
-    .pill-toggle button {
-      border: none;
-      padding: 4px 12px;
-      font-size: 0.8rem;
-      border-radius: 999px;
-      background: transparent;
-      color: var(--muted);
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-
-    .pill-toggle button.active {
-      background: linear-gradient(135deg, #38bdf8, #22c55e);
-      color: #020617;
+    .card-title {
+      font-size: 14px;
       font-weight: 600;
-    }
-
-    .slider-row {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 6px;
     }
 
-    input[type="range"],
+    .card-title-badge {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.6);
+      color: var(--text-soft);
+    }
+
+    .card-desc {
+      margin: 0;
+      font-size: 11px;
+      color: var(--text-soft);
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 8px 10px;
+      margin-top: 4px;
+    }
+
+    label {
+      font-size: 11px;
+      color: var(--text-soft);
+      display: block;
+      margin-bottom: 3px;
+    }
+
     input[type="number"],
     select {
       width: 100%;
-      accent-color: var(--accent);
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      background: rgba(15, 23, 42, 0.9);
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #020617;
       color: var(--text);
-      padding: 4px 10px;
-      font-size: 0.8rem;
+      font-size: 12px;
       outline: none;
     }
 
-    input[type="range"] {
-      padding: 0;
-      background: transparent;
-      border: none;
+    input[type="number"]:focus,
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(56,189,248,0.4);
     }
 
-    input[type="number"]::-webkit-outer-spin-button,
-    input[type="number"]::-webkit-inner-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-
-    input[type="number"] {
-      -moz-appearance: textfield;
-    }
-
-    .value-badge {
-      min-width: 58px;
-      text-align: center;
-      padding: 4px 8px;
-      font-size: 0.8rem;
+    .btn-primary {
+      margin-top: 10px;
+      padding: 7px 14px;
       border-radius: 999px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.5);
-    }
-
-    .hint {
-      font-size: 0.78rem;
-      color: var(--muted);
-      margin-top: 4px;
-      line-height: 1.4;
-    }
-
-    .results-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-
-    .results-header-title {
-      font-size: 0.95rem;
+      border: none;
+      background: linear-gradient(to right, #0ea5e9, #22c55e);
+      color: #0b1120;
+      font-size: 12px;
       font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 10px 20px rgba(34,197,94,0.35);
     }
 
-    .results-header-sub {
-      font-size: 0.78rem;
-      color: var(--muted);
+    .btn-primary:hover {
+      filter: brightness(1.05);
     }
 
-    .scenario-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-    }
-
-    @media (max-width: 768px) {
-      .scenario-grid {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
-
-    .scenario-card {
-      border-radius: var(--radius-md);
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      background: radial-gradient(
-          circle at top,
-          rgba(56, 189, 248, 0.12),
-          transparent 60%
-        ),
-        rgba(15, 23, 42, 0.96);
-      padding: 10px 10px 12px;
-      font-size: 0.82rem;
-    }
-
-    .scenario-title {
-      font-size: 0.8rem;
-      font-weight: 600;
-      margin-bottom: 4px;
-      display: flex;
-      justify-content: space-between;
+    .btn-secondary {
+      margin-top: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(15,23,42,0.9);
+      color: var(--text-soft);
+      font-size: 11px;
+      cursor: pointer;
+      display: inline-flex;
       align-items: center;
       gap: 4px;
     }
 
-    .scenario-tag {
-      font-size: 0.7rem;
-      padding: 1px 7px;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.7);
-      color: var(--muted);
-    }
-
-    .scenario-tag.primary {
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
-    .stat-row {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 3px;
-    }
-
-    .stat-label {
-      color: var(--muted);
-    }
-
-    .stat-value {
-      font-weight: 600;
-    }
-
-    .stat-value.highlight {
-      color: var(--accent);
-    }
-
-    .stat-value.danger {
-      color: var(--danger);
-    }
-
-    .small-note {
-      font-size: 0.7rem;
-      color: var(--muted);
-      margin-top: 6px;
-      line-height: 1.4;
-    }
-
-    .delta-text {
-      font-size: 0.8rem;
-      margin-top: 6px;
-    }
-
-    .delta-text strong {
-      color: var(--accent);
-    }
-
-    .chip-row {
+    .metrics-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 8px;
-    }
-
-    .chip {
-      font-size: 0.7rem;
-      padding: 2px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.3);
-      color: var(--muted);
-      background: rgba(15, 23, 42, 0.9);
-    }
-
-    .chip.strong {
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
-    .route-label {
-      font-size: 0.74rem;
-      margin-top: 6px;
-      color: var(--muted);
-    }
-
-    /* モード表示切り替え */
-    .mode-section {
-      margin-top: 12px;
-    }
-
-    .mode-section.hidden {
-      display: none;
-    }
-
-    footer {
-      margin-top: 16px;
-      font-size: 0.7rem;
-      color: var(--muted);
-      max-width: 40rem;
-    }
-
-    .placeholder-list {
-      margin-top: 10px;
-      padding-left: 18px;
-      font-size: 0.85rem;
-      color: var(--muted);
-    }
-
-    .placeholder-list li {
-      margin-bottom: 4px;
+      gap: 8px;
+      margin-top: 2px;
     }
 
     .metric-pill {
-      display: inline-flex;
-      align-items: baseline;
-      gap: 4px;
-      padding: 4px 10px;
+      padding: 5px 8px;
       border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      background: rgba(15, 23, 42, 0.9);
-      font-size: 0.78rem;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid var(--border);
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
 
-    .metric-pill-label {
-      color: var(--muted);
-    }
-
-    .metric-pill-value {
+    .metric-value {
       font-weight: 600;
+      color: var(--accent-strong);
+    }
+
+    .metric-label {
+      color: var(--text-soft);
+      font-size: 10px;
+    }
+
+    .metric-tag {
+      font-size: 9px;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: var(--muted-chip);
+      border: 1px solid rgba(148,163,184,0.3);
+      color: var(--text-soft);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      margin-top: 6px;
+    }
+
+    th, td {
+      padding: 5px 6px;
+      border-bottom: 1px solid rgba(31,41,55,0.8);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    th:first-child,
+    td:first-child {
+      text-align: left;
+    }
+
+    thead tr {
+      background: rgba(15,23,42,0.8);
+    }
+
+    tbody tr:nth-child(even) {
+      background: rgba(15,23,42,0.35);
+    }
+
+    .hint {
+      font-size: 10px;
+      color: var(--text-soft);
+      margin-top: 4px;
+    }
+
+    .hint-strong {
+      color: #e5e7eb;
+      font-weight: 500;
+    }
+
+    .quiz-list {
+      list-style: none;
+      padding: 0;
+      margin: 6px 0 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 260px;
+      overflow: auto;
+    }
+
+    .quiz-item {
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 7px 8px;
+      background: rgba(15,23,42,0.85);
+    }
+
+    .quiz-q-header {
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      margin-bottom: 3px;
+    }
+
+    .quiz-q-text {
+      font-size: 11px;
+      margin-bottom: 4px;
+    }
+
+    .quiz-choices {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 4px;
+    }
+
+    .quiz-choice {
+      font-size: 11px;
+      padding: 5px 6px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #020617;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .quiz-choice.selected {
+      border-color: var(--accent);
+      background: rgba(8,47,73,0.9);
+    }
+
+    .quiz-choice input {
+      display: none;
+    }
+
+    .quiz-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+      font-size: 10px;
+      color: var(--text-soft);
+    }
+
+    .quiz-footer span.strong {
+      color: var(--accent-strong);
+      font-weight: 600;
+    }
+
+    .result-block {
+      margin-top: 4px;
+      padding: 6px 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(148,163,184,0.4);
+      background: rgba(15,23,42,0.8);
+      font-size: 11px;
+    }
+
+    .result-block h4 {
+      margin: 0 0 4px;
+      font-size: 11px;
+    }
+
+    .result-block p {
+      margin: 2px 0;
+    }
+
+    .coming-soon {
+      font-size: 11px;
+      color: var(--text-soft);
+      margin-top: 4px;
+    }
+
+    footer {
+      font-size: 10px;
+      color: var(--text-soft);
+      text-align: center;
+      padding: 8px 12px 10px;
+      border-top: 1px solid var(--border);
+      background: rgba(15,23,42,0.9);
     }
   </style>
 </head>
 <body>
-  <main class="page">
-    <header>
-      <div class="badge">PROTOTYPE · SINGLE URL</div>
-      <div class="title">
+<header>
+  <div class="header-main">
+    <div class="title-block">
+      <h1>
         人生偏差値ラボ
-        <span style="font-size:0.8rem; color:#9ca3af;">
-          – 高校生 / 新卒 / 家計（DSCR）ミニシミュレーター v1
-        </span>
-      </div>
+        <span class="title-pill">Prototype v1.2.1 – SSOT実装版</span>
+      </h1>
       <p class="subtitle">
-        「今の偏差値・学歴・家計」が、将来の年収レンジや選べるルートにどう効いてくるかを可視化する実験ツールです。
-        このバージョンでは、<strong>高校生の偏差値アップ効果</strong>・<strong>新卒就職力</strong>・<strong>家計DSCR/FI年数</strong>を単一URLで確認できます。
+        高校生〜社会人まで、「頭」「心」「お金」「価値観」を偏差値で見える化する実験版ダッシュボード
       </p>
+      <div class="chip-row">
+        <div class="chip"><span>CORE</span> 高校生 / 新卒 / 家計</div>
+        <div class="chip"><span>LAB</span> 地頭ミニIQ v0 / EQ / 価値観（設計済）</div>
+        <div class="chip"><span>DB</span> 人生スナップショット構造（将来拡張用）</div>
+      </div>
+    </div>
+  </div>
+  <div class="tab-bar">
+    <button class="tab-btn active" data-panel="panel-highschool">
+      <span class="icon">🎓</span>高校生モード
+    </button>
+    <button class="tab-btn" data-panel="panel-job">
+      <span class="icon">💼</span>新卒・就活モード
+    </button>
+    <button class="tab-btn" data-panel="panel-household">
+      <span class="icon">🏠</span>家計・DSCRモード
+    </button>
+    <button class="tab-btn" data-panel="panel-iq">
+      <span class="icon">🧠</span>地頭ミニIQ（β）
+    </button>
+    <button class="tab-btn" data-panel="panel-eq">
+      <span class="icon">💬</span>EQ診断（設計のみ）
+    </button>
+    <button class="tab-btn" data-panel="panel-values">
+      <span class="icon">🧭</span>価値観プロファイル（設計のみ）
+    </button>
+  </div>
+</header>
 
-      <nav class="mode-tabs" id="modeTabs">
-        <button class="mode-tab active" data-mode="highschool">高校生モード</button>
-        <button class="mode-tab" data-mode="newgrad">新卒・就活モード</button>
-        <button class="mode-tab" data-mode="worker">家計・DSCRモード</button>
-      </nav>
-    </header>
-
-    <!-- ▼▼ 高校生モード ▼▼ -->
-    <section id="mode-highschool" class="mode-section">
-      <section class="layout">
-        <!-- 左：入力 -->
-        <section class="card">
-          <div class="card-content">
-            <h2>1. 今の自分をセットする（高校生）</h2>
-            <p>
-              今の模試偏差値と、ざっくりの進路イメージ（文系寄り・理系寄り）を入れてください。
-              「今のまま」「＋5」「＋10」の3パターンで30歳年収と進路ルートを比較します。
+<main>
+  <!-- 高校生モード -->
+  <section id="panel-highschool" class="panel active">
+    <div class="panel-grid">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">
+              🎓 高校生モード
+              <span class="card-title-badge">今の偏差値から30歳の年収レンジをざっくり試算</span>
+            </div>
+            <p class="card-desc">
+              文系/理系と模試の偏差値から、<strong>「今のまま / +5 / +10」</strong>で30歳の想定年収レンジと生涯差額をシミュレーションします。
             </p>
-
-            <div class="field-group">
-              <div class="field-label">文系 / 理系のイメージ</div>
-              <div class="pill-toggle" id="hs-trackToggle">
-                <button type="button" data-track="arts" class="active">文系寄り</button>
-                <button type="button" data-track="science">理系寄り</button>
-              </div>
-              <div class="hint">
-                どちらか迷う場合は、<strong>「理系教科（数学・物理など）で勝負する気があるかどうか」</strong>で選んでOKです。
-              </div>
-            </div>
-
-            <div class="field-group">
-              <div class="field-label">今の模試偏差値（おおよそ）</div>
-              <div class="slider-row">
-                <input
-                  id="hs-currentHen"
-                  type="range"
-                  min="40"
-                  max="70"
-                  step="1"
-                  value="50"
-                />
-                <div class="value-badge">
-                  <span id="hs-currentHenValue">50</span>
-                </div>
-              </div>
-              <div class="hint">
-                実際の模試が 47〜53 あたりなら「50」、 52〜58 あたりなら「55」…のようにざっくりで大丈夫です。
-              </div>
-            </div>
-
-            <div class="field-group">
-              <div class="field-label">この画面でわかること</div>
-              <div class="chip-row">
-                <div class="chip strong">30歳前後の年収レンジの差</div>
-                <div class="chip">生涯ベースのざっくり差額（万円）</div>
-                <div class="chip">偏差値アップで変わる進路ルートのイメージ</div>
-              </div>
-            </div>
           </div>
-        </section>
-
-        <!-- 右：結果 -->
-        <section class="card">
-          <div class="card-content">
-            <div class="results-header">
-              <div>
-                <div class="results-header-title">
-                  2. 30歳あたりの年収 &amp; 進路イメージ（試算）
-                </div>
-                <div class="results-header-sub">
-                  偏差値の違いによる「30歳時点の年収レンジ」と「代表的な進路ルート」を比較表示します。
-                </div>
-              </div>
-            </div>
-
-            <div class="scenario-grid" id="hs-scenarioGrid"></div>
-
-            <div class="small-note">
-              ※ 金額・進路ルートはすべて<strong>概算のモデル値</strong>です。
-              実際の人生は、分野選び・行動・タイミング・運などで大きく変わります。
-              「偏差値さえ上げれば勝ち」でも「偏差値に意味はない」でもなく、
-              <strong>「偏差値は、選べるルートを増やすための1つのレバー」</strong>として捉えてください。
-            </div>
+        </div>
+        <div class="field-grid">
+          <div>
+            <label for="hs-track">文系 / 理系</label>
+            <select id="hs-track">
+              <option value="arts">文系</option>
+              <option value="science">理系</option>
+            </select>
           </div>
-        </section>
-      </section>
-    </section>
-    <!-- ▲▲ 高校生モード ▲▲ -->
+          <div>
+            <label for="hs-hen">現在の模試偏差値（目安 / 40〜70）</label>
+            <input type="number" id="hs-hen" min="35" max="75" step="1" value="55" />
+          </div>
+        </div>
+        <button class="btn-primary" id="hs-run">
+          計算する
+          <span>→</span>
+        </button>
+        <p class="hint">
+          ※ SSOTのモデルに基づく<strong class="hint-strong">簡易シミュレーション</strong>です。実際の進路・年収を保証するものではありません。
+        </p>
+      </div>
 
-    <!-- ▼▼ 新卒モード ▼▼ -->
-    <section id="mode-newgrad" class="mode-section hidden">
-      <section class="layout">
-        <!-- 左：入力 -->
-        <section class="card">
-          <div class="card-content">
-            <h2>1. プロフィール入力（新卒・就活）</h2>
-            <p>
-              大学・学部・院・インターンなどの情報から、
-              <strong>ざっくり「新卒就職力偏差値」</strong>と30歳年収レンジを推定します。
+      <div class="card" id="hs-result-card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">
+              📊 シナリオ別の30歳年収 &amp; 生涯差額（モデル）
+            </div>
+            <p class="card-desc">
+              文系/理系と偏差値ごとのモデル年収を線形補間し、<strong>30歳推定中央値</strong>と<strong>上位20％レンジ</strong>、35年換算の生涯差額を表示します。
             </p>
-
-            <div class="field-group">
-              <div class="field-label">大学レベル帯</div>
-              <select id="ng-univRank">
-                <option value="1.0">F〜Eランク相当（地方私立・短大など）</option>
-                <option value="2.0" selected>地方国公立・中堅私大</option>
-                <option value="3.0">MARCH / 産近甲龍クラス</option>
-                <option value="4.0">早慶・上位国公立</option>
-                <option value="5.0">東大・京大・難関旧帝クラス</option>
-              </select>
-              <div class="hint">
-                正確な判定ではなく、<strong>「だいたいこのあたり」</strong>という感覚で選んでください。
-              </div>
-            </div>
-
-            <div class="field-group">
-              <div class="field-label">専攻タイプ</div>
-              <select id="ng-majorType">
-                <option value="1.0">文系一般（文・教育・社会・人文系など）</option>
-                <option value="1.2" selected>経済・商・経営・法など</option>
-                <option value="1.4">工学・情報・理学など（理系）</option>
-                <option value="1.5">看護・薬学・医療系</option>
-                <option value="1.8">医学部医学科クラス</option>
-              </select>
-            </div>
-
-            <div class="field-group">
-              <div class="field-label">最終学位（予定）</div>
-              <select id="ng-degreeLevel">
-                <option value="0" selected>学部卒（学士）</option>
-                <option value="0.5">修士卒（院卒）</option>
-                <option value="1.0">博士卒</option>
-              </select>
-            </div>
-
-            <div class="field-group">
-              <div class="field-label">成績帯（GPAのイメージ）</div>
-              <select id="ng-gpaBand">
-                <option value="-0.5">〜2.3くらい</option>
-                <option value="0" selected>2.3〜3.0くらい</option>
-                <option value="0.5">3.0〜3.5くらい</option>
-                <option value="1.0">3.5〜4.0くらい</option>
-              </select>
-            </div>
-
-            <div class="field-group">
-              <div class="field-label">インターン経験</div>
-              <select id="ng-intern">
-                <option value="0" selected>まだ参加していない</option>
-                <option value="0.5">1社・短期インターンに参加した</option>
-                <option value="1.0">複数社 or 長期インターン経験あり</option>
-              </select>
-            </div>
-
-            <div class="field-group">
-              <div class="field-label">英語・資格</div>
-              <select id="ng-english">
-                <option value="0" selected>特に強みなし</option>
-                <option value="0.5">TOEIC〜650 / 英検2級 など</option>
-                <option value="1.0">TOEIC700〜800 くらい</option>
-                <option value="1.5">TOEIC800＋ / 帰国子女級</option>
-              </select>
-              <div class="hint">
-                詳細な資格管理までは行わず、「ざっくり強みがあるかどうか」を見るイメージです。
-              </div>
-            </div>
-
-            <div class="field-group">
-              <div class="field-label">専門資格の有無</div>
-              <select id="ng-cert">
-                <option value="0" selected>特になし / 汎用資格のみ</option>
-                <option value="0.5">簿記・情報処理・FP など</option>
-                <option value="1.0">看護師・薬剤師など国家資格系</option>
-              </select>
-            </div>
           </div>
-        </section>
+        </div>
+        <div id="hs-summary" class="metrics-row"></div>
+        <table id="hs-table">
+          <thead>
+          <tr>
+            <th>シナリオ</th>
+            <th>偏差値</th>
+            <th>30歳年収・中央値</th>
+            <th>30歳年収・上位20%</th>
+            <th>生涯差額（35年・中央値基準）</th>
+          </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
 
-        <!-- 右：結果 -->
-        <section class="card">
-          <div class="card-content">
-            <div class="results-header">
-              <div>
-                <div class="results-header-title">
-                  2. 新卒就職力偏差値 &amp; 年収レンジ（ざっくり）
-                </div>
-                <div class="results-header-sub">
-                  学歴 × 成績 × 活動量から就職力スコアを合成し、「全国同年代と比べたポジション」を偏差値風に表示します。
-                </div>
-              </div>
+  <!-- 新卒・就活モード -->
+  <section id="panel-job" class="panel">
+    <div class="panel-grid">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">
+              💼 新卒・就活モード
+              <span class="card-title-badge">大学・院・専攻・英語などから就職力偏差値を推定</span>
             </div>
-
-            <div class="chip-row">
-              <div class="metric-pill">
-                <span class="metric-pill-label">就職力偏差値</span>
-                <span class="metric-pill-value" id="ng-hensachiLabel">–</span>
-              </div>
-              <div class="metric-pill">
-                <span class="metric-pill-label">想定30歳年収（中央値）</span>
-                <span class="metric-pill-value" id="ng-incomeMedianLabel">–</span>
-              </div>
-              <div class="metric-pill">
-                <span class="metric-pill-label">上位ゾーン（P80目安）</span>
-                <span class="metric-pill-value" id="ng-incomeP80Label">–</span>
-              </div>
-            </div>
-
-            <div class="field-group">
-              <div class="field-label">ポジションのイメージ</div>
-              <p class="hint" id="ng-positionText">
-                入力すると、ここに「おおよそのポジション（上位◯％くらい）」が表示されます。
-              </p>
-            </div>
-
-            <div class="field-group">
-              <div class="field-label">向いている職種クラスター（例）</div>
-              <div class="chip-row" id="ng-jobClusterChips"></div>
-            </div>
-
-            <div class="field-group">
-              <div class="field-label">コメント（仮説）</div>
-              <p class="hint" id="ng-commentText">
-                強み・弱み・これから伸ばすと効きやすいポイントを、ざっくりコメントします。
-              </p>
-            </div>
-
-            <div class="small-note">
-              ※ ここでの偏差値はあくまで「モデル上の擬似偏差値」であり、
-              実際の企業の採用基準や選考結果を保証するものではありません。
-            </div>
-          </div>
-        </section>
-      </section>
-    </section>
-    <!-- ▲▲ 新卒モード ▲▲ -->
-
-    <!-- ▼▼ 家計・DSCRモード ▼▼ -->
-    <section id="mode-worker" class="mode-section hidden">
-      <section class="layout">
-        <!-- 左：入力 -->
-        <section class="card">
-          <div class="card-content">
-            <h2>1. 家計情報を入れる（ざっくりでOK）</h2>
-            <p>
-              年間ベースで、世帯としての収入・生活費・ローン返済・金融資産を入れると、
-              <strong>家計DSCR偏差値</strong>と<strong>FI年数偏差値</strong>をざっくり計算します。
+            <p class="card-desc">
+              学歴（大学帯・専攻・学位）と個人要素（GPA / インターン / 英語 / 資格）から、<strong>就職力偏差値</strong>と30歳想定年収レンジを計算します。
             </p>
+          </div>
+        </div>
 
-            <div class="field-group">
-              <div class="field-label">世帯年収（税引き前・万円）</div>
-              <input id="wk-income" type="number" value="900" min="0" step="10" />
-              <div class="hint">例）会社員夫婦で合計年収900万円 → 「900」</div>
+        <div class="field-grid">
+          <div>
+            <label for="job-univ">大学レベル</label>
+            <select id="job-univ">
+              <option value="1">地方・中堅クラス（仮ランク1）</option>
+              <option value="2">日東駒専〜産近甲龍クラス（2）</option>
+              <option value="3" selected>MARCH・関関同立クラス（3）</option>
+              <option value="4">早慶・上位国公立クラス（4）</option>
+              <option value="5">東大京大・超上位国公立クラス（5）</option>
+            </select>
+          </div>
+          <div>
+            <label for="job-major">専攻タイプ</label>
+            <select id="job-major">
+              <option value="1">文系一般</option>
+              <option value="1.2">経済・法・商系</option>
+              <option value="1.5" selected>理工系（工学・情報・理学など）</option>
+              <option value="1.4">医療系（薬学・看護など）</option>
+              <option value="2.0">医学部（医）</option>
+            </select>
+          </div>
+          <div>
+            <label for="job-degree">最終学位</label>
+            <select id="job-degree">
+              <option value="0">学部卒</option>
+              <option value="0.5" selected>修士（M）</option>
+              <option value="1.0">博士（D）</option>
+            </select>
+          </div>
+          <div>
+            <label for="job-gpa">成績・GPA帯</label>
+            <select id="job-gpa">
+              <option value="-0.5">下位〜平均未満</option>
+              <option value="0">平均レベル</option>
+              <option value="0.5" selected>上位3割程度</option>
+              <option value="1.0">学年上位クラス</option>
+            </select>
+          </div>
+          <div>
+            <label for="job-intern">インターン経験</label>
+            <select id="job-intern">
+              <option value="0">ほぼ無し</option>
+              <option value="0.5" selected>短期・1day中心</option>
+              <option value="1.0">長期インターン・複数社</option>
+            </select>
+          </div>
+          <div>
+            <label for="job-english">英語力</label>
+            <select id="job-english">
+              <option value="0">特になし</option>
+              <option value="0.5">TOEIC 600〜700 / 準2〜2級</option>
+              <option value="1.0" selected>TOEIC 750〜850 / 準1級レベル</option>
+              <option value="1.5">TOEIC 900+ / 1級レベル</option>
+            </select>
+          </div>
+          <div>
+            <label for="job-cert">専門資格</label>
+            <select id="job-cert">
+              <option value="0">特になし</option>
+              <option value="0.5">関連資格いくつか</option>
+              <option value="1.0" selected>強めの専門資格あり</option>
+            </select>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="job-run">
+          就職力を計算
+          <span>→</span>
+        </button>
+        <p class="hint">
+          ※ SSOTのモデル式で計算する<strong class="hint-strong">就職力偏差値</strong>です。実際の就活結果を保証するものではありません。
+        </p>
+      </div>
+
+      <div class="card" id="job-result-card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">
+              📊 就職力偏差値と30歳年収レンジ（モデル）
             </div>
+            <p class="card-desc">
+              学校側スコア（大学ランク＋専攻＋学位）と個人側スコア（GPA / インターン / 英語 / 資格）から就職力偏差値を算出します。
+            </p>
+          </div>
+        </div>
 
-            <div class="field-group">
-              <div class="field-label">年間の生活費（最低限必要なライン・万円）</div>
-              <input id="wk-expense" type="number" value="500" min="0" step="10" />
-              <div class="hint">
-                住居費・食費・教育費など、「これ以下にするとかなり厳しい」というラインを入れてください。
-              </div>
+        <div id="job-summary" class="metrics-row"></div>
+
+        <table id="job-table">
+          <thead>
+          <tr>
+            <th>指標</th>
+            <th>スコア</th>
+            <th>コメント</th>
+          </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <div class="result-block" id="job-comment"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 家計・DSCRモード -->
+  <section id="panel-household" class="panel">
+    <div class="panel-grid">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">
+              🏠 家計・DSCRモード
+              <span class="card-title-badge">家計の安全度とFI年数を偏差値で見る</span>
             </div>
+            <p class="card-desc">
+              年収・生活費・ローン返済・金融資産から、家計DSCR（債務返済余力）とFI年数（資産だけで何年暮らせるか）を試算します。
+            </p>
+          </div>
+        </div>
 
-            <div class="field-group">
-              <div class="field-label">年間ローン返済額（住宅ローンなど・万円）</div>
-              <input id="wk-loan" type="number" value="120" min="0" step="5" />
-              <div class="hint">
-                住宅ローン・教育ローンなどの<strong>元利合計</strong>。なければ「0」でOKです。
-              </div>
+        <div class="field-grid">
+          <div>
+            <label for="hh-income">世帯年収（万円/年・税引前）</label>
+            <input type="number" id="hh-income" min="0" step="10" value="900" />
+          </div>
+          <div>
+            <label for="hh-expense">年間生活費（万円/年）</label>
+            <input type="number" id="hh-expense" min="0" step="5" value="400" />
+          </div>
+          <div>
+            <label for="hh-loan">年間ローン返済額（万円/年）</label>
+            <input type="number" id="hh-loan" min="0" step="5" value="180" />
+          </div>
+          <div>
+            <label for="hh-assets">金融資産（万円）</label>
+            <input type="number" id="hh-assets" min="0" step="50" value="800" />
+          </div>
+        </div>
+
+        <button class="btn-primary" id="hh-run">
+          家計偏差値を計算
+          <span>→</span>
+        </button>
+        <p class="hint">
+          ※ DSCR ≥ 1.3 で「やや安全」、1.5〜2.0で「かなり余裕」といったイメージのモデルです。
+        </p>
+      </div>
+
+      <div class="card" id="hh-result-card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">
+              📊 家計DSCR・FI年数・総合偏差値
             </div>
+            <p class="card-desc">
+              SSOTのモデルに基づき、DSCR・FI年数を偏差値スケールにマッピングして家計ポジションを評価します。
+            </p>
+          </div>
+        </div>
 
-            <div class="field-group">
-              <div class="field-label">金融資産（現金・株・投信など合計・万円）</div>
-              <input id="wk-assets" type="number" value="800" min="0" step="10" />
-              <div class="hint">
-                不動産は抜きで、預金・iDeCo・積立NISA・株などの合計をざっくりで。
-              </div>
+        <div id="hh-summary" class="metrics-row"></div>
+
+        <table id="hh-table">
+          <thead>
+          <tr>
+            <th>指標</th>
+            <th>値</th>
+            <th>偏差値（モデル）</th>
+            <th>コメント</th>
+          </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <div class="result-block" id="hh-comment"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 地頭ミニIQ（簡易版） -->
+  <section id="panel-iq" class="panel">
+    <div class="panel-grid">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">
+              🧠 地頭ミニIQチャレンジ v0
+              <span class="card-title-badge">12問・モデル偏差値（β版・サンプル用）</span>
+            </div>
+            <p class="card-desc">
+              論理・パターン・言語・ワーキングメモリの4カテゴリからなる12問のミニテストです。<strong>認知系の地頭偏差値</strong>とざっくりプロフィールを返します。
+            </p>
+          </div>
+        </div>
+
+        <ul class="quiz-list" id="iq-quiz-list"></ul>
+
+        <div class="quiz-footer">
+          <div>
+            <span class="strong" id="iq-progress-text">0 / 12 問</span> 選択済み
+          </div>
+          <div>
+            <span>カテゴリ：L = 論理, P = パターン, V = 言語, M = 記憶</span>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="iq-run">
+          地頭偏差値を算出
+          <span>→</span>
+        </button>
+        <button class="btn-secondary" id="iq-reset">
+          初期化してやり直す
+        </button>
+        <p class="hint">
+          ※ v0は「サンプル問題＋モデル分布」に基づく試験的なスコアです。将来、問題バンクと実測分布で精度を高めていきます。
+        </p>
+      </div>
+
+      <div class="card" id="iq-result-card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">
+              📊 地頭偏差値（認知）と簡易プロファイル
+            </div>
+            <p class="card-desc">
+              生スコアをSSOT定義のモデル（平均6 / SD2想定）にマッピングし、地頭偏差値と4カテゴリ別の強み・弱みを推定します。
+            </p>
+          </div>
+        </div>
+
+        <div id="iq-summary" class="metrics-row"></div>
+
+        <div class="result-block" id="iq-detail">
+          <p>12問に回答した後、「地頭偏差値を算出」を押すと結果が表示されます。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EQ診断（設計のみ） -->
+  <section id="panel-eq" class="panel">
+    <div class="panel-grid">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">
+              💬 EQ診断（設計のみ・実装予定）
+              <span class="card-title-badge">自己理解 / 自己制御 / 共感 / 対人スキル / ストレス耐性</span>
+            </div>
+            <p class="card-desc">
+              SSOTでは、EQを5軸（自己理解 / 自己制御 / 共感 / 対人スキル / ストレス耐性）で偏差値化する設計になっています。この画面は<strong>実装準備用スペース</strong>です。
+            </p>
+          </div>
+        </div>
+        <p class="coming-soon">
+          ・Likert形式（1〜5）質問：各軸 4〜6問を予定<br />
+          ・合計スコアを 0〜100 → 偏差値30〜70に変換<br />
+          ・認知系（地頭）との組み合わせで「タイプ判定」「向いている働き方」コメントを生成予定
+        </p>
+        <p class="coming-soon">
+          次のサイクル以降で、このタブに<strong>具体的な質問票UI</strong>と<strong>スコアロジック</strong>を実装し、人生スナップショットのEQブロックと接続します。
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">
+              🧩 EQ × 地頭 × 価値観 の組み合わせイメージ
             </div>
           </div>
-        </section>
+        </div>
+        <p class="card-desc">
+          EQ診断が実装されると、次のようなプロファイルが生成されます（例）：
+        </p>
+        <ul class="hint">
+          <li>・EQ総合：偏差値 52</li>
+          <li>・自己制御：偏差値 60 → 感情のコントロールが得意</li>
+          <li>・共感：偏差値 55 → 人の気持ちに気づきやすい</li>
+          <li>・対人スキル：偏差値 48 → 大人数より少人数の方が得意</li>
+          <li>・ストレス耐性：偏差値 58 → プレッシャー環境でも比較的安定</li>
+        </ul>
+        <p class="card-desc">
+          これを地頭テスト・価値観プロファイルと組み合わせて、「教育・医療・人事」「スタートアップ向き」「公務員・インフラ向き」などの
+          <strong>適性クラスター提案</strong>に使っていきます。
+        </p>
+      </div>
+    </div>
+  </section>
 
-        <!-- 右：結果 -->
-        <section class="card">
-          <div class="card-content">
-            <div class="results-header">
-              <div>
-                <div class="results-header-title">
-                  2. 家計DSCR / FI年数（ざっくり偏差値）
-                </div>
-                <div class="results-header-sub">
-                  投資家が見る「DSCR」の考え方を家計に持ち込み、生活の守り／攻めのバランスを偏差値っぽく見える化します。
-                </div>
-              </div>
+  <!-- 価値観プロファイル（設計のみ） -->
+  <section id="panel-values" class="panel">
+    <div class="panel-grid">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">
+              🧭 価値観プロファイル（設計のみ・実装予定）
+              <span class="card-title-badge">成功 / 安定 / 自由 / 成長 / 貢献 / 仲間 / 冒険 の7軸</span>
             </div>
+            <p class="card-desc">
+              SSOTでは、価値観を7軸（成功・達成 / 安定・安全 / 自由・自律 / 成長・学習 / 貢献・ケア / 仲間・所属 / 冒険・刺激）でスコアリングする設計になっています。
+            </p>
+          </div>
+        </div>
+        <p class="coming-soon">
+          ・Likert質問＋強制二択で各軸 0〜100 → 偏差値化<br />
+          ・トップ3軸・ボトム1軸を「価値観の優先順位」として表示<br />
+          ・地頭・EQプロファイルと掛け合わせて「向いている働き方・投資スタイル」を提案予定
+        </p>
+        <p class="coming-soon">
+          このタブは<strong>後続サイクルでのUI実装用スペース</strong>として確保してあります。  
+          移管時は、ここに質問票とスコアロジックを追記すれば人生スナップショットの価値観ブロックと自動的に接続できます。
+        </p>
+      </div>
 
-            <div class="chip-row">
-              <div class="metric-pill">
-                <span class="metric-pill-label">家計DSCR</span>
-                <span class="metric-pill-value" id="wk-dscrLabel">–</span>
-              </div>
-              <div class="metric-pill">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">
+              🔗 人生データベースとの接続イメージ
+            </div>
+          </div>
+        </div>
+        <p class="card-desc">
+          価値観7軸の偏差値は、人生スナップショットの <code>metrics</code> ブロックに次のように保存されます：
+        </p>
+        <pre class="hint" style="white-space: pre-wrap; background: rgba(15,23,42,0.85); padding: 8px; border-radius: 8px; border: 1px solid var(--border);">
+"val_success_hensachi": 63,
+"val_stability_hensachi": 55,
+"val_autonomy_hensachi": 58,
+"val_growth_hensachi": 61,
+"val_contribution_hensachi": 50,
+"val_affiliation_hensachi": 47,
+"val_adventure_hensachi": 52
+        </pre>
+        <p class="card-desc">
+          これにより、「成功×成長×自由が高い人」「貢献×安定×仲間が高い人」などのクラスター分析や、「似た価値観の人たちのキャリアパターン」の抽出が可能になります。
+        </p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  人生偏差値ラボ – SSOT v1.2 準拠プロトタイプ（単一HTML）。計算ロジックはすべてブラウザ内で完結するモデル版です。
+</footer>
+
+<script>
+  // ===== 共通ユーティリティ =====
+  function clamp(v, min, max) {
+    return Math.min(max, Math.max(min, v));
+  }
+
+  function roundTo(v, digits) {
+    const p = Math.pow(10, digits);
+    return Math.round(v * p) / p;
+  }
+
+  function fmtMoneyMan(v) {
+    if (isNaN(v)) return "-";
+    return v.toLocaleString("ja-JP") + " 万円";
+  }
+
+  // ===== タブ切り替え =====
+  (function initTabs() {
+    const tabs = document.querySelectorAll(".tab-btn");
+    const panels = document.querySelectorAll(".panel");
+    tabs.forEach(btn => {
+      btn.addEventListener("click", () => {
+        tabs.forEach(b => b.classList.remove("active"));
+        panels.forEach(p => p.classList.remove("active"));
+        btn.classList.add("active");
+        const id = btn.getAttribute("data-panel");
+        const panel = document.getElementById(id);
+        if (panel) panel.classList.add("active");
+      });
+    });
+  })();
+
+  // ===== 高校生モード =====
+  function interpolateIncomeMedian(h) {
+    const anchors = [
+      { h: 45, y: 350 },
+      { h: 50, y: 400 },
+      { h: 55, y: 500 },
+      { h: 60, y: 600 },
+      { h: 65, y: 700 }
+    ];
+    h = clamp(h, 40, 70);
+    if (h <= anchors[0].h) {
+      const a = anchors[0];
+      return a.y - (a.h - h) * 10;
+    }
+    if (h >= anchors[anchors.length - 1].h) {
+      const a = anchors[anchors.length - 1];
+      return a.y + (h - a.h) * 10;
+    }
+    for (let i = 0; i < anchors.length - 1; i++) {
+      const a = anchors[i];
+      const b = anchors[i + 1];
+      if (h >= a.h && h <= b.h) {
+        const t = (h - a.h) / (b.h - a.h);
+        return a.y + (b.y - a.y) * t;
+      }
+    }
+    return 400;
+  }
+
+  function calcHsScenario(track, baseHen) {
+    const trackFactor = track === "science" ? 1.1 : 1.0;
+    const scenarios = [
+      { label: "今のまま", delta: 0 },
+      { label: "+5を目指した場合", delta: 5 },
+      { label: "+10を目指した場合", delta: 10 }
+    ];
+    const rows = [];
+    let baseMedian = null;
+    scenarios.forEach(sc => {
+      let h = baseHen + sc.delta;
+      h = Math.min(h, 65);
+      const median0 = interpolateIncomeMedian(h);
+      const median = Math.round(median0 * trackFactor);
+      const p80 = Math.round(median * 1.2);
+      rows.push({ label: sc.label, h, median, p80 });
+      if (sc.delta === 0) baseMedian = median;
+    });
+    rows.forEach(r => {
+      const diffPerYear = Math.max(0, r.median - baseMedian);
+      r.lifetimeDiff = diffPerYear * 35;
+    });
+    return rows;
+  }
+
+  (function initHighschool() {
+    const btn = document.getElementById("hs-run");
+    const trackEl = document.getElementById("hs-track");
+    const henEl = document.getElementById("hs-hen");
+    const tbody = document.querySelector("#hs-table tbody");
+    const summary = document.getElementById("hs-summary");
+
+    function render() {
+      const rawHen = parseFloat(henEl.value);
+      const hen = clamp(isNaN(rawHen) ? 50 : rawHen, 35, 75);
+      if (hen !== rawHen) {
+        henEl.value = hen;
+      }
+      const track = trackEl.value;
+      const rows = calcHsScenario(track, hen);
+
+      tbody.innerHTML = "";
+      rows.forEach(r => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${r.label}</td>
+          <td>${r.h.toFixed(1)}</td>
+          <td>${fmtMoneyMan(r.median)}</td>
+          <td>${fmtMoneyMan(r.p80)}</td>
+          <td>${fmtMoneyMan(r.lifetimeDiff)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const base = rows[0];
+      const plus5 = rows[1];
+      const plus10 = rows[2];
+      summary.innerHTML = "";
+
+      const makePill = (title, value, tag, tone) => {
+        const div = document.createElement("div");
+        div.className = "metric-pill";
+        const labelDiv = document.createElement("div");
+        labelDiv.className = "metric-label";
+        labelDiv.textContent = title;
+        const valueDiv = document.createElement("div");
+        valueDiv.className = "metric-value";
+        valueDiv.textContent = value;
+        if (tone === "good") valueDiv.style.color = "var(--success)";
+        if (tone === "warn") valueDiv.style.color = "var(--danger)";
+        const tagSpan = document.createElement("span");
+        tagSpan.className = "metric-tag";
+        tagSpan.textContent = tag;
+        div.appendChild(labelDiv);
+        div.appendChild(valueDiv);
+        div.appendChild(tagSpan);
+        return div;
+      };
+
+      const diff5 = plus5.lifetimeDiff;
+      const diff10 = plus10.lifetimeDiff;
+
+      summary.appendChild(
+        makePill(
+          "今の偏差値（入力）",
+          hen.toFixed(1),
+          track === "science" ? "理系モデル" : "文系モデル",
+          null
+        )
+      );
+      summary.appendChild(
+        makePill(
+          "+5シナリオの生涯差額",
+          fmtMoneyMan(diff5),
+          "+5の価値（35年換算）",
+          "good"
+        )
+      );
+      summary.appendChild(
+        makePill(
+          "+10シナリオの生涯差額",
+          fmtMoneyMan(diff10),
+          "+10の価値（35年換算）",
+          "good"
+        )
+      );
+      summary.appendChild(
+        makePill(
+          "ベース30歳年収（中央値）",
+          fmtMoneyMan(base.median),
+          "今のまま",
+          null
+        )
+      );
+    }
+
+    btn.addEventListener("click", render);
+    render();
+  })();
+
+  // ===== 新卒・就活モード =====
+  function calcJobScores(params) {
+    const {
+      univRank,
+      majorType,
+      degreeLevel,
+      gpaBand,
+      intern,
+      english,
+      cert
+    } = params;
+
+    const schoolRaw = 20 * univRank + 8 * majorType + 6 * degreeLevel;
+    const schoolScore = clamp(schoolRaw / 1.2, 0, 100);
+
+    const indivRaw =
+      8 * gpaBand +
+      6 * intern +
+      6 * english +
+      6 * cert;
+    const indivScore = clamp((indivRaw / 29) * 100, 0, 100);
+
+    const totalScore = 0.6 * schoolScore + 0.4 * indivScore;
+    const hensachiJob = clamp(Math.round(50 + (totalScore - 50) * 0.4), 30, 75);
+
+    const medianIncome = Math.round(350 + (hensachiJob - 50) * 8);
+    const p80Income = Math.round(medianIncome * 1.25);
+
+    return {
+      schoolScore: roundTo(schoolScore, 1),
+      indivScore: roundTo(indivScore, 1),
+      totalScore: roundTo(totalScore, 1),
+      hensachiJob,
+      medianIncome,
+      p80Income
+    };
+  }
+
+  (function initJob() {
+    const runBtn = document.getElementById("job-run");
+    const summary = document.getElementById("job-summary");
+    const tbody = document.querySelector("#job-table tbody");
+    const commentEl = document.getElementById("job-comment");
+
+    function render() {
+      const univRank = parseFloat(document.getElementById("job-univ").value);
+      const majorType = parseFloat(document.getElementById("job-major").value);
+      const degreeLevel = parseFloat(document.getElementById("job-degree").value);
+      const gpaBand = parseFloat(document.getElementById("job-gpa").value);
+      const intern = parseFloat(document.getElementById("job-intern").value);
+      const english = parseFloat(document.getElementById("job-english").value);
+      const cert = parseFloat(document.getElementById("job-cert").value);
+
+      const res = calcJobScores({
+        univRank,
+        majorType,
+        degreeLevel,
+        gpaBand,
+        intern,
+        english,
+        cert
+      });
+
+      summary.innerHTML = "";
+
+      const makePill = (label, value, tag) => {
+        const div = document.createElement("div");
+        div.className = "metric-pill";
+        const labelDiv = document.createElement("div");
+        labelDiv.className = "metric-label";
+        labelDiv.textContent = label;
+        const valueDiv = document.createElement("div");
+        valueDiv.className = "metric-value";
+        valueDiv.textContent = value;
+        const tagSpan = document.createElement("span");
+        tagSpan.className = "metric-tag";
+        tagSpan.textContent = tag;
+        div.appendChild(labelDiv);
+        div.appendChild(valueDiv);
+        div.appendChild(tagSpan);
+        return div;
+      };
+
+      summary.appendChild(
+        makePill("就職力偏差値", res.hensachiJob, "モデルスコア")
+      );
+      summary.appendChild(
+        makePill("30歳年収中央値", fmtMoneyMan(res.medianIncome), "モデル推定")
+      );
+      summary.appendChild(
+        makePill("30歳年収・上位20%", fmtMoneyMan(res.p80Income), "モデル推定")
+      );
+
+      tbody.innerHTML = "";
+      const rows = [
+        {
+          label: "学校側ポテンシャル",
+          value: res.schoolScore.toFixed(1),
+          comment: "大学レベル・専攻・学位による基礎ポテンシャル"
+        },
+        {
+          label: "個人側ポテンシャル",
+          value: res.indivScore.toFixed(1),
+          comment: "GPA・インターン・英語・資格などの積み上げ度合い"
+        },
+        {
+          label: "合成スコア",
+          value: res.totalScore.toFixed(1),
+          comment: "学校6：個人4で合成した就職力スコア"
+        }
+      ];
+      rows.forEach(r => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${r.label}</td>
+          <td>${r.value}</td>
+          <td>${r.comment}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      let posComment;
+      if (res.hensachiJob >= 65) {
+        posComment = "就職力は上位ゾーン（偏差値65以上）にあり、選択肢はかなり広いレンジに入りやすいモデルです。";
+      } else if (res.hensachiJob >= 55) {
+        posComment = "就職力はやや上位〜上位寄り（偏差値55〜65）で、志望業界・職種次第では十分戦えるレンジです。";
+      } else if (res.hensachiJob >= 45) {
+        posComment = "就職力はおおむね平均レンジ（偏差値45〜55）で、戦い方の工夫（インターン・ポートフォリオなど）が効いてきます。";
+      } else {
+        posComment = "就職力はモデル上やや控えめ（偏差値45未満）ですが、ニッチ領域・地方案件・中小優良企業など戦いやすい場所も多く存在します。";
+      }
+
+      const gains = [];
+
+      if (gpaBand < 0.5) {
+        gains.push("・成績/GPA帯を一段上げる（授業・レポート・少数の科目でテコ入れ）");
+      }
+      if (intern < 1.0) {
+        gains.push("・長期インターンまたは職種直結インターンで現場経験を積む");
+      }
+      if (english < 1.0) {
+        gains.push("・英語力（TOEIC750〜）を狙い、書類通過ラインを超えておく");
+      }
+      if (cert < 1.0) {
+        gains.push("・志望職種と直結した資格/スキル（簿記・クラウド資格・ネットワーク系など）を一つ積む");
+      }
+
+      commentEl.innerHTML = `
+        <h4>総評（モデルベース）</h4>
+        <p>就職力偏差値：<strong>${res.hensachiJob}</strong> ／ 30歳想定年収レンジ：<strong>${fmtMoneyMan(
+          res.medianIncome
+        )}〜${fmtMoneyMan(res.p80Income)}</strong></p>
+        <p>${posComment}</p>
+        ${
+          gains.length
+            ? `<p>モデル上、伸びしろが大きいと想定されるアクション：</p><ul>${gains
+                .map(g => `<li>${g}</li>`)
+                .join("")}</ul>`
+            : `<p>入力条件上、個人側の積み上げ要素もかなり高水準になっています。あとは志望業界・職種とのチューニングと、面接でのアウトプット設計が勝負になります。</p>`
+        }
+      `;
+    }
+
+    runBtn.addEventListener("click", render);
+    render();
+  })();
+
+  // ===== 家計・DSCRモード =====
+  function calcHousehold(params) {
+    const { income, expense, loan, assets } = params;
+    const safeExpense = expense > 0 ? expense : 1;
+
+    let dscr = null;
+    if (loan > 0) {
+      dscr = (income - expense) / loan;
+    }
+
+    const fiYears = assets / safeExpense;
+
+    let dscrHen = null;
+    if (dscr !== null) {
+      const dscrClamped = clamp(dscr, 0, 3);
+      dscrHen = clamp(50 + (dscrClamped - 1) * 20, 20, 80);
+    }
+
+    const fiClamped = clamp(fiYears, 0, 40);
+    const fiHen = clamp(50 + (fiClamped - 10) * 1.5, 20, 80);
+
+    let totalHen;
+    if (dscrHen === null) {
+      totalHen = fiHen;
+    } else {
+      totalHen = 0.6 * dscrHen + 0.4 * fiHen;
+    }
+
+    return {
+      dscr,
+      fiYears,
+      dscrHen,
+      fiHen,
+      totalHen: roundTo(totalHen, 1)
+    };
+  }
+
+  (function initHousehold() {
+    const runBtn = document.getElementById("hh-run");
+    const summary = document.getElementById("hh-summary");
+    const tbody = document.querySelector("#hh-table tbody");
+    const commentEl = document.getElementById("hh-comment");
+
+    function render() {
+      const income = parseFloat(document.getElementById("hh-income").value) || 0;
+      const expense = parseFloat(document.getElementById("hh-expense").value) || 0;
+      const loan = parseFloat(document.getElementById("hh-loan").value) || 0;
+      const assets = parseFloat(document.getElementById("hh-assets").value) || 0;
+
+      const res = calcHousehold({ income, expense, loan, assets });
+
+      summary.innerHTML = "";
+      tbody.innerHTML = "";
+
+      const makePill = (label, value, tag, tone) => {
+        const div = document.createElement("div");
+        div.className = "metric-pill";
+        const labelDiv = document.createElement("div");
+        labelDiv.className = "metric-label";
+        labelDiv.textContent = label;
+        const valueDiv = document.createElement("div");
+        valueDiv.className = "metric-value";
+        valueDiv.textContent = value;
+        if (tone === "good") valueDiv.style.color = "var(--success)";
+        if (tone === "warn") valueDiv.style.color = "var(--danger)";
+        const tagSpan = document.createElement("span");
+        tagSpan.className = "metric-tag";
+        tagSpan.textContent = tag;
+        div.appendChild(labelDiv);
+        div.appendChild(valueDiv);
+        div.appendChild(tagSpan);
+        return div;
+      };
+
+      if (res.dscr !== null) {
+        summary.appendChild(
+          makePill(
+            "家計DSCR",
+            roundTo(res.dscr, 2).toString(),
+            "1.3以上でやや安全",
+            res.dscr >= 1.5 ? "good" : res.dscr < 1.0 ? "warn" : null
+          )
+        );
+      } else {
+        summary.appendChild(
+          makePill(
+            "家計DSCR",
+            "ローンなし",
+            "借入が無いためDSCRは未定義",
+            "good"
+          )
+        );
+      }
+
+      summary.appendChild(
+        makePill(
+          "FI年数（資産だけで暮らせる年数）",
+          roundTo(res.fiYears, 1) + " 年",
+          "10年以上でやや安心",
+          res.fiYears >= 20 ? "good" : res.fiYears < 5 ? "warn" : null
+        )
+      );
+
+      summary.appendChild(
+        makePill(
+          "家計総合偏差値",
+          res.totalHen.toFixed(1),
+          "DSCR×FI年数モデル",
+          null
+        )
+      );
+
+      const rows = [];
+
+      if (res.dscr !== null) {
+        let comment;
+        if (res.dscr < 1.0) {
+          comment =
+            "ローン返済で手一杯になりやすい水準。返済額の調整や生活費の見直しを強く検討したいゾーンです。";
+        } else if (res.dscr < 1.3) {
+          comment =
+            "ギリギリ黒字〜やや余裕レベル。突発支出への備えやボーナス依存度を確認したいゾーンです。";
+        } else if (res.dscr < 1.8) {
+          comment =
+            "比較的余裕のある返済バランス。長期的な投資・繰上返済を検討しやすいレンジです。";
+        } else {
+          comment =
+            "かなり余裕のある返済バランス。リスク許容度を踏まえつつ、将来の選択肢を広げる投資・自己投資の余地も大きい状態です。";
+        }
+        rows.push({
+          label: "家計DSCR",
+          value:
+            res.dscr === null ? "ローンなし" : roundTo(res.dscr, 2).toString(),
+          hen: res.dscrHen === null ? "-" : res.dscrHen.toFixed(1),
+          comment
+        });
+      } else {
+        rows.push({
+          label: "家計DSCR",
+          value: "ローンなし",
+          hen: "-",
+          comment:
+            "住宅ローンなどの大きな借入が無いため、DSCRは定義されません。家計としては債務リスクは低い状態といえます。"
+        });
+      }
+
+      let fiComment;
+      if (res.fiYears < 3) {
+        fiComment =
+          "FI年数は3年未満。生活防衛資金を厚めに確保しつつ、生活費の固定部分を圧縮する余地がないか確認したいゾーンです。";
+      } else if (res.fiYears < 10) {
+        fiComment =
+          "FI年数は3〜10年程度。大きなリスクは取りづらいが、計画的な投資とキャリア戦略で徐々に年数を伸ばしていけるレンジです。";
+      } else if (res.fiYears < 20) {
+        fiComment =
+          "FI年数は10〜20年。かなり厚めの資産クッションがあり、キャリアチェンジや働き方の自由度を高めやすい状態です。";
+      } else {
+        fiComment =
+          "FI年数は20年以上。家計としてはほぼ「半FI〜FI」ゾーンに近く、働き方・住まい方の自由度が非常に高い状態です。";
+      }
+
+      rows.push({
+        label: "FI年数",
+        value: roundTo(res.fiYears, 1) + " 年",
+        hen: res.fiHen.toFixed(1),
+        comment: fiComment
+      });
+
+      rows.push({
+        label: "家計総合偏差値",
+        value: res.totalHen.toFixed(1),
+        hen: res.totalHen.toFixed(1),
+        comment:
+          "DSCR（あれば）とFI年数を6:4で合成したモデル偏差値です。50前後が「平均的な家計バランス」のイメージです。"
+      });
+
+      rows.forEach(r => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${r.label}</td>
+          <td>${r.value}</td>
+          <td>${r.hen}</td>
+          <td>${r.comment}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      commentEl.innerHTML = `
+        <h4>総評（モデルベース）</h4>
+        <p>
+          世帯年収：<strong>${fmtMoneyMan(
+            income
+          )}</strong> ／ 生活費：<strong>${fmtMoneyMan(
+        expense
+      )}</strong> ／ ローン返済：<strong>${fmtMoneyMan(
+        loan
+      )}</strong> ／ 資産：<strong>${fmtMoneyMan(assets)}</strong>
+        </p>
+        <p>
+          家計総合偏差値は <strong>${res.totalHen.toFixed(
+            1
+          )}</strong> でした。これは「DSCR（返済余力）とFI年数（資産クッション）」のバランスから見たモデル上のポジションです。
+        </p>
+      `;
+    }
+
+    runBtn.addEventListener("click", render);
+    render();
+  })();
+
+  // ===== 地頭ミニIQ（簡易版） =====
+  const iqQuestions = [
+    {
+      id: 1,
+      cat: "L",
+      text: "3, 5, 9, 17, 33, ... に続く数として最も適切なのは？",
+      choices: ["49", "57", "65", "81"],
+      correct: 1
+    },
+    {
+      id: 2,
+      cat: "L",
+      text: "ある工場で1台の機械は2時間で製品を10個作ります。同じ性能の機械3台で6時間稼働したとき、製品はいくつできますか？",
+      choices: ["60個", "80個", "90個", "100個"],
+      correct: 2
+    },
+    {
+      id: 3,
+      cat: "L",
+      text: "AさんはBさんより3歳年上です。5年後、AさんはBさんの年齢の1.1倍になります。現在のBさんの年齢はいくつ？",
+      choices: ["20歳", "25歳", "30歳", "35歳"],
+      correct: 2
+    },
+    {
+      id: 4,
+      cat: "P",
+      text: "2Dの図形で、正方形→ひし形→正方形→ひし形…と回転していくパターンがあります。4回目の図形は？",
+      choices: ["正方形", "ひし形", "三角形", "円"],
+      correct: 0
+    },
+    {
+      id: 5,
+      cat: "P",
+      text: "○ △ □ ○ △ □ ... と3つの図形が繰り返される列で、15番目の図形は？",
+      choices: ["○", "△", "□", "わからない"],
+      correct: 2
+    },
+    {
+      id: 6,
+      cat: "P",
+      text: "立方体の展開図として正しいものを選ぶ問題だとしたとき、最も不自然なものはどれか？（直感でOK）",
+      choices: ["向かい合う面が重ならないもの", "正方形が6枚連なったもの", "T字型のもの", "一直線に6枚並んだもの"],
+      correct: 3
+    },
+    {
+      id: 7,
+      cat: "V",
+      text: "「熱い」が「冷たい」と関係するとき、「明るい」に対応する語として最も近いのは？",
+      choices: ["重い", "暗い", "眩しい", "鋭い"],
+      correct: 1
+    },
+    {
+      id: 8,
+      cat: "V",
+      text: "「原因」に対して最も近い関係にある語の組み合わせは？",
+      choices: ["質問：答え", "問題：解決", "前提：結論", "材料：料理"],
+      correct: 3
+    },
+    {
+      id: 9,
+      cat: "V",
+      text: "次のうち「抽象的な概念」に最も近い語はどれ？",
+      choices: ["机", "リンゴ", "自由", "雨"],
+      correct: 2
+    },
+    {
+      id: 10,
+      cat: "M",
+      text: "「7, 4, 9, 2」という4つの数字を見たとします。数秒後、「4番目の数字」は？",
+      choices: ["2", "4", "7", "9"],
+      correct: 0
+    },
+    {
+      id: 11,
+      cat: "M",
+      text: "買い物メモ「牛乳・卵・パン・りんご・ヨーグルト」を覚えます。次のうちリストに<strong>なかった</strong>ものは？",
+      choices: ["牛乳", "卵", "バナナ", "ヨーグルト"],
+      correct: 2
+    },
+    {
+      id: 12,
+      cat: "M",
+      text: "3, 8, 5, 1, 9 という列を逆から並べると？",
+      choices: ["1, 3, 5, 8, 9", "9, 1, 5, 8, 3", "9, 5, 1, 8, 3", "9, 3, 1, 5, 8"],
+      correct: 1
+    }
+  ];
+
+  function calcIqScores(answers) {
+    let rawScore = 0;
+    const catScores = { L: 0, P: 0, V: 0, M: 0 };
+
+    iqQuestions.forEach((q, idx) => {
+      const ans = answers[idx];
+      if (ans === q.correct) {
+        rawScore += 1;
+        catScores[q.cat] += 1;
+      }
+    });
+
+    const modelMean = 6;
+    const modelSd = 2;
+    const z = (rawScore - modelMean) / modelSd;
+    const iqLike = clamp(Math.round(100 + z * 15), 70, 130);
+    const hensachi = clamp(Math.round(50 + (iqLike - 100) * (10 / 15)), 30, 70);
+
+    const catHens = {};
+    ["L", "P", "V", "M"].forEach(cat => {
+      const s = catScores[cat];
+      const base = 30 + (s / 3) * 40;
+      catHens[cat] = Math.round(base);
+    });
+
+    return {
+      rawScore,
+      iqLike,
+      hensachi,
+      catScores,
+      catHens
+    };
+  }
+
+  (function initIq() {
+    const listEl = document.getElementById("iq-quiz-list");
+    const progressText = document.getElementById("iq-progress-text");
+    const runBtn = document.getElementById("iq-run");
+    const resetBtn = document.getElementById("iq-reset");
+    const summary = document.getElementById("iq-summary");
+    const detail = document.getElementById("iq-detail");
+
+    const answers = new Array(iqQuestions.length).fill(null);
+
+    function renderQuestions() {
+      listEl.innerHTML = "";
+      iqQuestions.forEach((q, idx) => {
+        const li = document.createElement("li");
+        li.className = "quiz-item";
+        const catLabel = { L: "L（論理・数理）", P: "P（パターン）", V: "V（言語）", M: "M（記憶）" }[q.cat] || q.cat;
+        li.innerHTML = `
+          <div class="quiz-q-header">
+            <span>第 ${q.id} 問 <span style="color: var(--accent-strong);">${catLabel}</span></span>
+            <span style="color: var(--text-soft); font-size: 10px;">直感でOK</span>
+          </div>
+          <div class="quiz-q-text">${q.text}</div>
+          <div class="quiz-choices"></div>
+        `;
+        const choicesEl = li.querySelector(".quiz-choices");
+        q.choices.forEach((cText, cIdx) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "quiz-choice";
+          if (answers[idx] === cIdx) {
+            btn.classList.add("selected");
+          }
+          btn.innerHTML = `<span>${String.fromCharCode(65 + cIdx)}.</span> ${cText}`;
+          btn.addEventListener("click", () => {
+            answers[idx] = cIdx;
+            renderQuestions();
+            updateProgress();
+          });
+          choicesEl.appendChild(btn);
+        });
+        listEl.appendChild(li);
+      });
+    }
+
+    function updateProgress() {
+      const count = answers.filter(a => a !== null).length;
+      progressText.textContent = `${count} / ${iqQuestions.length} 問`;
+    }
+
+    function run() {
+      if (answers.some(a => a === null)) {
+        if (!confirm("未回答の問題があります。このまま採点しますか？")) {
+          return;
+        }
+      }
+      const res = calcIqScores(answers);
+      summary.innerHTML = "";
+
+      const makePill = (label, value, tag) => {
+        const div = document.createElement("div");
+        div.className = "metric-pill";
+        const labelDiv = document.createElement("div");
+        labelDiv.className = "metric-label";
+        labelDiv.textContent = label;
+        const valueDiv = document.createElement("div");
+        valueDiv.className = "metric-value";
+        valueDiv.textContent = value;
+        const tagSpan = document.createElement("span");
+        tagSpan.className = "metric-tag";
+        tagSpan.textContent = tag;
+        div.appendChild(labelDiv);
+        div.appendChild(valueDiv);
+        div.appendChild(tagSpan);
+        return div;
+      };
+
+      summary.appendChild(
+        makePill("地頭偏差値（認知）", res.hensachi, "モデルベース")
+      );
+      summary.appendChild(
+        makePill("IQライクスコア", res.iqLike, "平均100 / SD15モデル")
+      );
+      summary.appendChild(
+        makePill("正答数", `${res.rawScore} / ${iqQuestions.length}`, "ミニテストスコア")
+      );
+
+      const catNames = {
+        L: "論理・数理",
+        P: "パターン・空間",
+        V: "言語・類推",
+        M: "ワーキングメモリ"
+      };
+
+      const catLines = Object.keys(res.catHens).map(cat => {
+        return `${catNames[cat]}：偏差値 ${res.catHens[cat]}（正答 ${res.catScores[cat]} 問）`;
+      });
+
+      let profileComment = "";
+      if (res.catHens.L >= res.catHens.P && res.catHens.L >= res.catHens.V) {
+        profileComment += "・論理・数理が比較的強めで、仕組みや原因を整理して考える思考スタイルが向いているタイプです。\n";
+      }
+      if (res.catHens.P >= 60) {
+        profileComment += "・パターン認識が高めで、図形や関係性のルールを見抜くのが得意な傾向があります。\n";
+      }
+      if (res.catHens.V >= 60) {
+        profileComment += "・言語・類推力が高めで、言葉や概念のつながりを扱う仕事・学び方と相性が良さそうです。\n";
+      }
+      if (res.catHens.M >= 60) {
+        profileComment += "・ワーキングメモリが高めで、複数の情報を一時的に保持しながら処理するタスクに強みが出やすいタイプです。\n";
+      }
+      if (!profileComment) {
+        profileComment =
+          "・各カテゴリはおおむね平均〜やや上程度に収まっており、バランス型のプロファイルです。特定の尖りを作るよりも、環境選びやEQ・価値観との組み合わせで適性が決まりやすいタイプと言えます。";
+      }
+
+      detail.innerHTML = `
+        <h4>カテゴリ別プロファイル</h4>
+        <p>${catLines.join("<br>")}</p>
+        <p>※ v0はサンプル問題に基づくざっくりプロファイルです。本番版では問題バンクと実測分布を用いて精度を高めます。</p>
+        <h4>ざっくりタイプコメント</h4>
+        <p style="white-space: pre-line;">${profileComment}</p>
+      `;
+    }
+
+    function reset() {
+      for (let i = 0; i < answers.length; i++) {
+        answers[i] = null;
+      }
+      renderQuestions();
+      updateProgress();
+      summary.innerHTML = "";
+      detail.innerHTML = `
+        <p>まだ採点していません。「地頭偏差値を算出」を押すと結果が表示されます。</p>
+      `;
+    }
+
+    runBtn.addEventListener("click", run);
+    resetBtn.addEventListener("click", reset);
+
+    renderQuestions();
+    updateProgress();
+  })();
+</script>
+</body>
+</html>
